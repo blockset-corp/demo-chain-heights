@@ -10,7 +10,7 @@ class BlocksetCheckRunner(CheckRunner):
 
     def get_supported_chains(self) -> List[Blockchain]:
         mainnets = self.fetch('get', 'blockchains')['_embedded']['blockchains']
-        testnets = self.fetch('get', 'blockchains', params={'testnets', 'true'})['_embedded']['blockchains']
+        testnets = self.fetch('get', 'blockchains', params={'testnet': 'true'})['_embedded']['blockchains']
         result = []
         for chain in mainnets:
             result.append(Blockchain(chain['name'], chain['id'], False))

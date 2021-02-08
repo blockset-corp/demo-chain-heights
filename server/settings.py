@@ -39,7 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'app',
-    'django_celery_beat'
+    'django_celery_beat',
+    'django_celery_results'
 ]
 
 MIDDLEWARE = [
@@ -77,7 +78,7 @@ WSGI_APPLICATION = 'server.wsgi.application'
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(default='postgres://postgres:postgres@127.0.0.1:5432/informant')
+    'default': dj_database_url.config(default='postgres://postgres:password@127.0.0.1:5432/postgres')
 }
 
 # Password validation
@@ -119,4 +120,11 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 
-BLOCKSET_TOKEN = ''
+CELERY_TIMEZONE = 'Europe/London'
+ENABLE_UTC = True
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'django-db'
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+
+BLOCKSET_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI2OGY5NjJlMy1hM2EzLTRkMmUtOTM2Mi0yMWJhM2I4OTRlNDkiLCJicmQ6Y3QiOiJjbGkiLCJleHAiOjkyMjMzNzIwMzY4NTQ3NzUsImlhdCI6MTYwNjMzOTY4Nn0.NR969_Sklo2Rqr9l30C6BQfL7EX7uaFDws-36uMwaxDILsAnVNZF_2lJVgIBhdHOHHWzA2OzbfBMC_alunptWg'

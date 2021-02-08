@@ -21,6 +21,10 @@ RESULT_STATUSES = (
 class Service(models.Model):
     name = models.CharField(max_length=60)
     slug = AutoSlugField(populate_from='name')
+    supported_chains = models.JSONField()
+
+    def __str__(self):
+        return self.name
 
 
 class CheckResult(models.Model):
