@@ -7,6 +7,7 @@ from . import CheckRunner, BlockHeightResult, Blockchain
 class BlocksetCheckRunner(CheckRunner):
     def __init__(self):
         self.token = settings.BLOCKSET_TOKEN
+        self.session = requests.session()
 
     def get_supported_chains(self) -> List[Blockchain]:
         mainnets = self.fetch('get', 'blockchains')['_embedded']['blockchains']
@@ -28,7 +29,7 @@ class BlocksetCheckRunner(CheckRunner):
             params['headers'].update(headers)
         else:
             params['headers'] = headers
-        resp = requests.request(method, 'https://api.blockset.com/' + resource, **params)
+        resp = self.session.request(method, 'https://api.blockset.com/' + resource, **params)
         resp.raise_for_status()
         if len(resp.content) > 0:
             return resp.json()

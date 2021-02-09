@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
+import os
 from pathlib import Path
 import dj_database_url
 
@@ -127,4 +128,4 @@ CELERY_RESULT_BACKEND = 'django-db'
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 
-BLOCKSET_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI2OGY5NjJlMy1hM2EzLTRkMmUtOTM2Mi0yMWJhM2I4OTRlNDkiLCJicmQ6Y3QiOiJjbGkiLCJleHAiOjkyMjMzNzIwMzY4NTQ3NzUsImlhdCI6MTYwNjMzOTY4Nn0.NR969_Sklo2Rqr9l30C6BQfL7EX7uaFDws-36uMwaxDILsAnVNZF_2lJVgIBhdHOHHWzA2OzbfBMC_alunptWg'
+BLOCKSET_TOKEN = os.environ.get('BLOCKSET_TOKEN', '')

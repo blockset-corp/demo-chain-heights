@@ -1,7 +1,6 @@
-import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Generic, TypeVar, Callable, Optional, List, Mapping
+from typing import List, Mapping
 
 
 @dataclass
@@ -16,16 +15,6 @@ class Blockchain:
     testnet: bool
 
 
-T = TypeVar('T')
-
-
-@dataclass
-class CheckResult(Generic[T]):
-    duration: int
-    error: Exception
-    result: Optional[T]
-
-
 class CheckRunner(ABC):
     @abstractmethod
     def get_supported_chains(self) -> List[Blockchain]:
@@ -34,21 +23,6 @@ class CheckRunner(ABC):
     @abstractmethod
     def get_block_height(self, chain_id: str) -> BlockHeightResult:
         pass
-
-
-V = TypeVar('V')
-
-
-def check(checker: Callable[[], V]) -> CheckResult[V]:
-    start = time.time_ns()
-    error = None
-    result = None
-    try:
-        result = checker()
-    except Exception as e:
-        error = e
-    end = time.time_ns()
-    return CheckResult(end - start, error, result)
 
 
 def get_all_check_runners() -> Mapping[str, CheckRunner]:
