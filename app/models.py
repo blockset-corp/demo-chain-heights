@@ -1,6 +1,10 @@
 from django.db import models
 from autoslug import AutoSlugField
 
+CHECK_TYPE_BLOCK_HEIGHT = 'bh'
+CHECK_TYPES = (
+    (CHECK_TYPE_BLOCK_HEIGHT, 'Block Height'),
+)
 
 RESULT_STATUS_OK = 'ok'
 RESULT_STATUS_ERR = 'er'
@@ -35,10 +39,30 @@ class Blockchain(models.Model):
     def __str__(self):
         return f'{self.service} {self.name}'
 
+
+class CheckInstance(models.Model):
+    type = models.CharField(choices=CHECK_TYPES, max_length=2, db_column='check_type')
+    started = models.DateTimeField()
+    completed = models.DateTimeField(null=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=('type', 'completed'), name='check_type_completed')
+        ]
+
+    def __str__(self):
+        s = f'{self.type} {self.started}'
+        if self.completed:
+            dur = self.completed - self.started
+            s = s + f' {dur}'
+        return s
+
+
 class ChainHeightResult(models.Model):
     blockchain = models.ForeignKey(Blockchain, on_delete=models.CASCADE)
+    check_instance = models.ForeignKey(CheckInstance, on_delete=models.CASCADE)
     started = models.DateTimeField()
-    duration = models.IntegerField()
+    duration = models.IntegerField(help_text='Duration in nanoseconds')
     status = models.CharField(max_length=2, choices=RESULT_STATUSES)
     height = models.IntegerField(default=0)
     error = models.TextField(default='')

@@ -13,7 +13,7 @@ def create_service_update_schedule(apps, schema_editor):
     PeriodicTask = apps.get_model('django_celery_beat', 'PeriodicTask')
 
     schedule, _ = CrontabSchedule.objects.get_or_create(
-        minute='1', hour='*', day_of_week='*', day_of_month='*', month_of_year='*'
+        minute='*', hour='*', day_of_week='*', day_of_month='*', month_of_year='*'
     )
 
     PeriodicTask.objects.create(

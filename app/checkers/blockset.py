@@ -1,13 +1,13 @@
 from typing import List
-import requests
 from django.conf import settings
 from . import CheckRunner, BlockHeightResult, Blockchain
+from ._utils import HttpBase
 
 
-class BlocksetCheckRunner(CheckRunner):
+class BlocksetCheckRunner(CheckRunner, HttpBase):
     def __init__(self):
         self.token = settings.BLOCKSET_TOKEN
-        self.session = requests.session()
+        super().__init__()
 
     def get_supported_chains(self) -> List[Blockchain]:
         mainnets = self.fetch('get', 'blockchains')['_embedded']['blockchains']

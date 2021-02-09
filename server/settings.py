@@ -127,5 +127,8 @@ CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'django-db'
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
+HTTP_TIMEOUT = 5  # seconds
 
-BLOCKSET_TOKEN = os.environ.get('BLOCKSET_TOKEN', '')
+BLOCKSET_TOKEN = os.environ.get('BLOCKSET_TOKEN', '').strip()
+
+ETHERSCAN_TOKEN = os.environ.get('ETHERSCAN_TOKEN', '').strip()

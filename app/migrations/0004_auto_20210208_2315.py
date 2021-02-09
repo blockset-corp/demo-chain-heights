@@ -13,7 +13,7 @@ def create_update_all_blockchain_heights_task(apps, schema_editor):
 
     PeriodicTask.objects.create(
         interval=schedule,
-        name='Updated block all chain heights',
+        name='Update all chain heights',
         task='app.tasks.update_all_blockchain_heights'
     )
 

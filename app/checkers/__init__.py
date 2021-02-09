@@ -27,6 +27,11 @@ class CheckRunner(ABC):
 
 def get_all_check_runners() -> Mapping[str, CheckRunner]:
     from .blockset import BlocksetCheckRunner
+    from .blockchain import BlockchainCheckRunner
+    from .etherscan import EtherscanCheckRunner
+
     return {
-        'blockset': BlocksetCheckRunner()
+        'blockset': BlocksetCheckRunner(),
+        'blockchain': BlockchainCheckRunner(),
+        'etherscan': EtherscanCheckRunner()
     }
