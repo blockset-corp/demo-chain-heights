@@ -62,7 +62,7 @@ class ChainHeightResult(models.Model):
     blockchain = models.ForeignKey(Blockchain, on_delete=models.CASCADE)
     check_instance = models.ForeignKey(CheckInstance, on_delete=models.CASCADE)
     started = models.DateTimeField()
-    duration = models.IntegerField(help_text='Duration in nanoseconds')
+    duration = models.IntegerField(help_text='Duration in milliseconds')
     status = models.CharField(max_length=2, choices=RESULT_STATUSES)
     height = models.IntegerField(default=0)
     error = models.TextField(default='')

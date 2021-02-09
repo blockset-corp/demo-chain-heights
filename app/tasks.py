@@ -66,7 +66,7 @@ def update_blockchain_height(service_slug, chain_id, check_id):
         'blockchain': Blockchain.objects.get(service__slug=service_slug, slug=chain_id),
         'check_instance_id': check_id,
         'started': started_time,
-        'duration': end_ns - started_ns,
+        'duration': (end_ns - started_ns) / 1_000_000,
         'status': status
     }
     if height_result is not None:

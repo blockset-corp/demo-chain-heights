@@ -132,3 +132,7 @@ HTTP_TIMEOUT = 5  # seconds
 BLOCKSET_TOKEN = os.environ.get('BLOCKSET_TOKEN', '').strip()
 
 ETHERSCAN_TOKEN = os.environ.get('ETHERSCAN_TOKEN', '').strip()
+
+BLOCKCYPHER_TOKEN = os.environ.get('BLOCKCYPHER_TOKEN', '').strip()
+
+BLOCKCHAIR_TOKEN = os.environ.get('BLOCKCHAIR_TOKEN', '').strip()

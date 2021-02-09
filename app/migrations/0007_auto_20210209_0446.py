@@ -3,10 +3,12 @@
 from django.db import migrations
 
 
-def create_blockset_service(apps, schema_editor):
+def create_services(apps, schema_editor):
     Service = apps.get_model('app', 'Service')
     Service.objects.create(name='Blockchain.info', slug='blockchain')
     Service.objects.create(name='Etherscan', slug='etherscan')
+    Service.objects.create(name='BlockCypher', slug='blockcypher')
+    Service.objects.create(name='Blockchair', slug='blockchair')
 
 
 class Migration(migrations.Migration):
@@ -16,5 +18,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(create_blockset_service)
+        migrations.RunPython(create_services)
     ]

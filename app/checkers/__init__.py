@@ -29,9 +29,13 @@ def get_all_check_runners() -> Mapping[str, CheckRunner]:
     from .blockset import BlocksetCheckRunner
     from .blockchain import BlockchainCheckRunner
     from .etherscan import EtherscanCheckRunner
+    from .blockcypher import BlockCypherCheckRunner
+    from .blockchair import BlockChairCheckRunner
 
     return {
         'blockset': BlocksetCheckRunner(),
         'blockchain': BlockchainCheckRunner(),
-        'etherscan': EtherscanCheckRunner()
+        'etherscan': EtherscanCheckRunner(),
+        'blockcypher': BlockCypherCheckRunner(),
+        'blockchair': BlockChairCheckRunner()
     }
