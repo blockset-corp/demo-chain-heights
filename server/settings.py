@@ -13,6 +13,9 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 import os
 from pathlib import Path
 import dj_database_url
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration, CeleryIntegration
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,12 +25,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'h@580!8np2#4bacf&k&-76d_9tddk(*rvqpcv7nc-8ad-a_cz@'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'h@580!8np2#4bacf&k&-76d_9tddk(*rvqpcv7nc-8ad-a_cz@')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', '').lower() == 'true'
 
 ALLOWED_HOSTS = []
+HOSTNAME = os.environ.get('HOSTNAME', 'localhost')
+if HOSTNAME:
+    ALLOWED_HOSTS.append(HOSTNAME)
 
 
 # Application definition
@@ -47,6 +53,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -121,10 +128,12 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 CELERY_TIMEZONE = 'Europe/London'
 ENABLE_UTC = True
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = 'django-db'
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
@@ -138,3 +147,18 @@ INFURA_PROJECT_ID = os.environ.get('INFURA_PROJECT_ID', '').strip()
 ALCHEMY_MAINNET_KEY = os.environ.get('ALCHEMY_MAINNET_KEY', '').strip()
 ALCHEMY_ROPSTEN_KEY = os.environ.get('ALCHEMY_ROPSTEN_KEY', '').strip()
 AMBERDATA_TOKEN = os.environ.get('AMBERDATA_TOKEN', '').strip()
+
+
+sentry_sdk.init(
+    dsn=os.environ.get('SENTRY_DSN', ''),
+    integrations=[DjangoIntegration(), CeleryIntegration()],
+
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    # We recommend adjusting this value in production,
+    traces_sample_rate=1.0,
+
+    # If you wish to associate users to errors (assuming you are using
+    # django.contrib.auth) you may enable sending PII data.
+    send_default_pii=True
+)
