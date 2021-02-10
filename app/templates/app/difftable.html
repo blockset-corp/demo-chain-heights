@@ -1,30 +1,48 @@
 {% load check_extras %}
 
-<table id="difftable" class="table table-bordered table-sm mt-4">
-    <thead>
-    <th scope="col"></th>
-    <th scope="col"></th>
-    {% for service in services %}
-        <th scope="col">{{ service }}</th>
-    {% endfor %}
-    </thead>
-    <tbody>
-    {% for chain in chains %}
-        <tr>
-            {% get_height chain_heights chain as chain_height %}
-            <th scope="row">{{ chain }}</th>
-            <th scope="row">{{ chain_height }}</th>
-            {% for service in services %}
-                {% get_result results_by_service_by_chain chain service as result %}
-                {% if result %}
-                    <td class="table-{{ result.difference_from_best_status }}">
-                        {{ result.difference_from_best }}
-                    </td>
-                {% else %}
-                    <td class="table-light">&nbsp;</td>
-                {% endif %}
-            {% endfor %}
-        </tr>
-    {% endfor %}
-    </tbody>
-</table>
+<div id="difftable">
+    <table class="table table-bordered table-sm mt-4">
+        <thead>
+        <th scope="col"></th>
+        <th scope="col"></th>
+        {% for service in services %}
+            <th scope="col">{{ service }}</th>
+        {% endfor %}
+        </thead>
+        <tbody>
+        {% for chain in chains %}
+            <tr>
+                {% get_height chain_heights chain as chain_height %}
+                <th scope="row">{{ chain }}</th>
+                <th scope="row">{{ chain_height }}</th>
+                {% for service in services %}
+                    {% get_result results_by_service_by_chain chain service as result %}
+                    {% if result %}
+                        <td class="ms-overlay table-{{ result.difference_from_best_status }}"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="right"
+                            title="{{ result.duration }} ms">
+                            {{ result.difference_from_best }}
+                        </td>
+                    {% else %}
+                        <td class="table-light">&nbsp;</td>
+                    {% endif %}
+                {% endfor %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <p>
+        Run ID: {{ check.pk }}<br>Time since last update: <span id="timesince"></span>
+    </p>
+    <script>
+        lastRun = Math.floor({{ check.completed.timestamp }});
+        updateTimeSince();
+        $(function () {
+            let tooltipTriggerList = [].slice.call(document.querySelectorAll('.ms-overlay'))
+            toolTipList = tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+    </script>
+</div>

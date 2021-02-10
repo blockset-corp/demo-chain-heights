@@ -1,4 +1,5 @@
 # Byte-compiled / optimized / DLL files
+/static
 .idea
 __pycache__/
 *.py[cod]

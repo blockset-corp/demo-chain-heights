@@ -3,24 +3,44 @@
 
 {% block javascript %}
     <script>
-    $(function() {
-        // reload the table every 10 seconds
-        setInterval(function() {
-            $.ajax({
-                url: '{% url "difftable" %}',
-                success: function(data) {
-                    $('#difftable').html(data);
-                }
-            })
-        }, 5*1000);
-    });
+        // time since last run
+        var lastRun = Math.floor({{ check.completed.timestamp }});
+        // list of tool tip objects which must be disposed before they are removed from the page
+        var toolTipList = [];
+
+        function updateTimeSince() {
+            let nowSec = Math.floor(Date.now() / 1000);
+            $("#timesince").text((nowSec - lastRun) + " seconds");
+        }
+
+        $(function () {
+            // reload the table automatically
+            setInterval(function () {
+                $.ajax({
+                    url: '{% url "difftable" %}',
+                    success: function (data) {
+                        // remove any visible tooltips
+                        toolTipList.forEach(function (tt) {
+                            tt.dispose();
+                        });
+                        // replace table content
+                        $('#difftable').html(data);
+                    }
+                })
+            }, 5 * 1000);
+
+            // update time since widget
+            updateTimeSince();
+
+            setInterval(updateTimeSince, 1000);
+        });
     </script>
 {% endblock %}
 
 {% block content %}
     <div class="container mt-4">
-    <h3>Block Diff</h3>
-    <p>Distance from the best imported block height by all tracked services. Updated every 10 seconds.</p>
-    {% include "app/difftable.html" %}
+        <h3>Block Height Diff</h3>
+        <p>Distance from the best imported block height by all tracked services. Updated every 30 seconds.</p>
+        {% include "app/difftable.html" %}
     </div>
 {% endblock %}
