@@ -20,5 +20,6 @@ from app import views
 urlpatterns = [
     path('', views.index, name='index'),
     path('difftable/', views.difftable_partial, name='difftable'),
+    path('json_summary/', views.json_summary, name='json_summary'),
     path('admin/', admin.site.urls),
 ]
