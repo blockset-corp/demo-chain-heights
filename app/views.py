@@ -1,3 +1,4 @@
+from collections import defaultdict
 from django.shortcuts import render
 from .models import CheckInstance, ChainHeightResult, CHECK_TYPE_BLOCK_HEIGHT
 
@@ -32,15 +33,21 @@ def get_difftable_context(request):
             'best_result__blockchain__service'
         )
         chain_set = set()
+        all_heights = defaultdict(list)
         service_set = set()
         for result in results:
             if result.difference_from_best() == 0:
                 context['chain_heights'][result.blockchain.slug] = result.height
+            all_heights[result.blockchain.slug].append(result.height)
             key = result.blockchain.service.slug + result.blockchain.slug
             context['results_by_service_by_chain'][key] = result
             chain_set.add(result.blockchain.slug)
             service_set.add(result.blockchain.service.slug)
-        context['chains'] = list(chain_set)
+        chains_to_ignore = set()
+        for chain_id in chain_set:
+            if sum(all_heights[chain_id]) == 0:
+                chains_to_ignore.add(chain_id)
+        context['chains'] = list(chain_set - chains_to_ignore)
         context['chains'].sort()
         context['services'] = list(service_set)
         context['services'].sort()
