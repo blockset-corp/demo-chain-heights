@@ -24,6 +24,7 @@ def get_difftable_context(request):
     }
     check, height_results = get_check_and_results(request)
     if height_results is not None:
+        context['check'] = check
         all_heights = defaultdict(list)
         chain_set = set()
         service_set = set()
