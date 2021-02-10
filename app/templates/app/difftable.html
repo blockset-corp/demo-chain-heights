@@ -19,8 +19,6 @@
                     {% get_result results_by_service_by_chain chain service as result %}
                     {% if result %}
                         <td class="ms-overlay table-{{ result.difference_from_best_status }}"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="right"
                             title="{{ result.duration }} ms">
                             {{ result.difference_from_best }}
                         </td>
@@ -41,7 +39,9 @@
         $(function () {
             let tooltipTriggerList = [].slice.call(document.querySelectorAll('.ms-overlay'))
             toolTipList = tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
+                return new bootstrap.Tooltip(tooltipTriggerEl, {
+                    placement: 'right'
+                });
             });
         });
     </script>
