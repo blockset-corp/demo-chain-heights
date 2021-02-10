@@ -26,7 +26,10 @@ def update_supported_blockchain(service_slug):
     chains_result = runner.get_supported_chains()
     svc = Service.objects.get(slug=service_slug)
     for chain in chains_result:
-        Blockchain.objects.get_or_create(
+        existing = Blockchain.objects.filter(slug=chain.slug, service=svc, is_testnet=chain.testnet)
+        if existing.count():
+            continue
+        Blockchain.objects.create(
             name=chain.name,
             slug=chain.slug,
             service=svc,
