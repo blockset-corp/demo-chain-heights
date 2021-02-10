@@ -21,7 +21,7 @@ class BlocksetCheckRunner(CheckRunner, HttpBase):
 
     def get_block_height(self, chain_id: str) -> BlockHeightResult:
         chain = self.fetch('get', 'blockchains/' + chain_id)
-        return BlockHeightResult(chain['block_height'])
+        return BlockHeightResult(chain['verified_height'])
 
     def fetch(self, method, resource, **params):
         headers = {'authorization': 'Bearer ' + self.token}

@@ -75,3 +75,6 @@ class ChainHeightResult(models.Model):
 
     def blockchain_slug(self):
         return self.blockchain.slug
+
+    def duration_ms(self):
+        return f'{self.duration}ms'

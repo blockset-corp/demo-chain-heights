@@ -22,7 +22,7 @@ class CheckInstanceAdmin(admin.ModelAdmin):
 
 @admin.register(ChainHeightResult)
 class ChainHeightResultAdmin(admin.ModelAdmin):
-    list_display = ('service_slug', 'blockchain_slug', 'check_instance_id', 'status', 'height')
+    list_display = ('service_slug', 'blockchain_slug', 'check_instance_id', 'status', 'duration_ms', 'height')
     ordering = ('-check_instance_id', 'blockchain__slug', 'blockchain__service__slug')
 
     def get_queryset(self, request):

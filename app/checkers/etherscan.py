@@ -1,4 +1,3 @@
-import socket
 from typing import List
 from collections import OrderedDict
 from django.conf import settings
@@ -6,17 +5,9 @@ from . import CheckRunner, Blockchain, BlockHeightResult
 from ._utils import HttpBase
 
 
-
-
 class EtherscanCheckRunner(CheckRunner, HttpBase):
     def __init__(self):
         self.token = settings.ETHERSCAN_TOKEN
-        answers = socket.getaddrinfo('api.etherscan.io', 443)
-        (_, _, _, _, (address, _)) = answers[0]
-        self.etherscan_mainnet_address = address
-        answers = socket.getaddrinfo('api-ropsten.etherscan.io', 443)
-        (_, _, _, _, (address, _)) = answers[0]
-        self.etherscan_ropsten_address = address
         super().__init__()
 
     def get_supported_chains(self) -> List[Blockchain]:
@@ -27,10 +18,8 @@ class EtherscanCheckRunner(CheckRunner, HttpBase):
 
     def get_block_height(self, chain_id: str) -> BlockHeightResult:
         if chain_id == 'ethereum-mainnet':
-            url = self.etherscan_mainnet_address
             host = 'api.etherscan.io'
         elif chain_id == 'ethereum-ropsten':
-            url = self.etherscan_ropsten_address
             host = 'api-ropsten.etherscan.io'
         else:
             raise Exception(f'Unknown blockchain={chain_id}')

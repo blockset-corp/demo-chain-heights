@@ -10,9 +10,9 @@ class BlockchainCheckRunner(CheckRunner, HttpBase):
         ]
 
     def get_block_height(self, chain_id: str) -> BlockHeightResult:
-        if chain_id == 'bitcoin-mainnet':
-            res = self.session.request('get', 'https://blockchain.info/latestblock')
-            res.raise_for_status()
-            result = res.json()
-            return BlockHeightResult(height=result['height'])
-        raise Exception(f'Unsupported blockchain={chain_id}')
+        if chain_id != 'bitcoin-mainnet':
+            raise Exception(f'Unsupported blockchain={chain_id}')
+        res = self.session.request('get', 'https://blockchain.info/latestblock')
+        res.raise_for_status()
+        result = res.json()
+        return BlockHeightResult(height=result['height'])

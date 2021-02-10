@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'app',
     'django_celery_beat',
-    'django_celery_results'
+    'django_celery_results',
+    'bootstrap4'
 ]
 
 MIDDLEWARE = [
@@ -130,9 +131,10 @@ CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 HTTP_TIMEOUT = 5  # seconds
 
 BLOCKSET_TOKEN = os.environ.get('BLOCKSET_TOKEN', '').strip()
-
 ETHERSCAN_TOKEN = os.environ.get('ETHERSCAN_TOKEN', '').strip()
-
 BLOCKCYPHER_TOKEN = os.environ.get('BLOCKCYPHER_TOKEN', '').strip()
-
 BLOCKCHAIR_TOKEN = os.environ.get('BLOCKCHAIR_TOKEN', '').strip()
+INFURA_PROJECT_ID = os.environ.get('INFURA_PROJECT_ID', '').strip()
+ALCHEMY_MAINNET_KEY = os.environ.get('ALCHEMY_MAINNET_KEY', '').strip()
+ALCHEMY_ROPSTEN_KEY = os.environ.get('ALCHEMY_ROPSTEN_KEY', '').strip()
+AMBERDATA_TOKEN = os.environ.get('AMBERDATA_TOKEN', '').strip()

@@ -9,6 +9,12 @@ def create_services(apps, schema_editor):
     Service.objects.create(name='Etherscan', slug='etherscan')
     Service.objects.create(name='BlockCypher', slug='blockcypher')
     Service.objects.create(name='Blockchair', slug='blockchair')
+    Service.objects.create(name='Blockstream', slug='blockstream')
+    Service.objects.create(name='DragonGlass', slug='dragonglass')
+    Service.objects.create(name='Infura', slug='infura')
+    Service.objects.create(name='Amberdata', slug='amberdata')
+    Service.objects.create(name='Alchemy', slug='alchemy')
+    Service.objects.create(name='XRPL', slug='xrpl')
 
 
 class Migration(migrations.Migration):

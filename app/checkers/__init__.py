@@ -31,11 +31,23 @@ def get_all_check_runners() -> Mapping[str, CheckRunner]:
     from .etherscan import EtherscanCheckRunner
     from .blockcypher import BlockCypherCheckRunner
     from .blockchair import BlockChairCheckRunner
+    from .blockstream import BlockstreamCheckRunner
+    from .dragonglass import DragonGlassCheckRunner
+    from .infura import InfuraCheckRunner
+    from .amberdata import AmberdataCheckRunner
+    from .alchemy import AlchemyCheckRunner
+    from .xrpl import XrplCheckRunner
 
     return {
         'blockset': BlocksetCheckRunner(),
         'blockchain': BlockchainCheckRunner(),
         'etherscan': EtherscanCheckRunner(),
         'blockcypher': BlockCypherCheckRunner(),
-        'blockchair': BlockChairCheckRunner()
+        'blockchair': BlockChairCheckRunner(),
+        'blockstream': BlockstreamCheckRunner(),
+        'dragonglass': DragonGlassCheckRunner(),
+        'infura': InfuraCheckRunner(),
+        'amberdata': AmberdataCheckRunner(),
+        'alchemy': AlchemyCheckRunner(),
+        'xrpl': XrplCheckRunner(),
     }
