@@ -66,6 +66,7 @@ class ChainHeightResult(models.Model):
     status = models.CharField(max_length=2, choices=RESULT_STATUSES)
     height = models.IntegerField(default=0)
     error = models.TextField(default='')
+    best_result = models.ForeignKey('ChainHeightResult', on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return f'{self.blockchain} {self.get_status_display()} {self.height}'
@@ -78,3 +79,13 @@ class ChainHeightResult(models.Model):
 
     def duration_ms(self):
         return f'{self.duration}ms'
+
+    def best_service(self):
+        if self.best_result is None:
+            return 'unknown'
+        return self.best_result.blockchain.service.slug
+
+    def difference_from_best(self):
+        if self.best_result is None:
+            return 0
+        return self.height - self.best_result.height

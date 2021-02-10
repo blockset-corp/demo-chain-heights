@@ -82,6 +82,23 @@ def complete_check(check_id):
     check.completed = timezone.now()
     check.save()
 
+    results = ChainHeightResult.objects.filter(check_instance=check).select_related('blockchain')
+    best = {}
+
+    # calculate the best height for each blockchain id
+    for result in results:
+        if result.blockchain.slug in best:
+            current_best = best[result.blockchain.slug]
+            if result.height > current_best.height:
+                best[result.blockchain.slug] = result
+        else:
+            best[result.blockchain.slug] = result
+
+    # save the difference from best height in each result
+    for result in results:
+        result.best_result = best[result.blockchain.slug]
+        result.save()
+
 
 check_runners = None
 
