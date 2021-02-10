@@ -38,7 +38,7 @@
         updateTimeSince();
         $(function () {
             let tooltipTriggerList = [].slice.call(document.querySelectorAll('.ms-overlay'))
-            toolTipList = tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+            window.toolTipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl, {
                     placement: 'right'
                 });

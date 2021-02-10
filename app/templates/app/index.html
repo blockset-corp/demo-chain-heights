@@ -4,9 +4,9 @@
 {% block javascript %}
     <script>
         // time since last run
-        var lastRun = Math.floor({{ check.completed.timestamp }});
+        window.lastRun = Math.floor({{ check.completed.timestamp }});
         // list of tool tip objects which must be disposed before they are removed from the page
-        var toolTipList = [];
+        window.toolTipList = [];
 
         function updateTimeSince() {
             let nowSec = Math.floor(Date.now() / 1000);
@@ -20,7 +20,7 @@
                     url: '{% url "difftable" %}',
                     success: function (data) {
                         // remove any visible tooltips
-                        toolTipList.forEach(function (tt) {
+                        window.toolTipList.forEach(function (tt) {
                             tt.dispose();
                         });
                         // replace table content
