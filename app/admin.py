@@ -25,6 +25,7 @@ class ChainHeightResultAdmin(admin.ModelAdmin):
     list_display = ('service_slug', 'blockchain_slug', 'check_instance_id', 'status',
                     'duration_ms', 'height', 'difference_from_best', 'best_service')
     ordering = ('-check_instance_id', 'blockchain__slug', 'blockchain__service__slug')
+    readonly_fields = ('blockchain', 'check_instance', 'best_result')
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related(
