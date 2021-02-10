@@ -24,6 +24,10 @@ class CheckRunner(ABC):
     def get_block_height(self, chain_id: str) -> BlockHeightResult:
         pass
 
+    @abstractmethod
+    def get_all_block_heights(self, chain_ids: List[str]) -> List[BlockHeightResult]:
+        pass
+
 
 def get_all_check_runners() -> Mapping[str, CheckRunner]:
     from .blockset import BlocksetCheckRunner

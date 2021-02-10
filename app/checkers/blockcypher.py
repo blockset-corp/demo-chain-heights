@@ -32,3 +32,6 @@ class BlockCypherCheckRunner(CheckRunner, HttpBase):
         resp.raise_for_status()
         result = resp.json()
         return BlockHeightResult(height=result['height'])
+
+    def get_all_block_heights(self, chain_ids: List[str]) -> List[BlockHeightResult]:
+        raise NotImplementedError

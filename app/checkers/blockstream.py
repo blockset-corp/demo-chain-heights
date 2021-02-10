@@ -24,3 +24,6 @@ class BlockstreamCheckRunner(CheckRunner, HttpBase):
         resp.raise_for_status()
         height = int(resp.text)
         return BlockHeightResult(height=height)
+
+    def get_all_block_heights(self, chain_ids: List[str]) -> List[BlockHeightResult]:
+        raise NotImplementedError

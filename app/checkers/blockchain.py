@@ -16,3 +16,6 @@ class BlockchainCheckRunner(CheckRunner, HttpBase):
         res.raise_for_status()
         result = res.json()
         return BlockHeightResult(height=result['height'])
+
+    def get_all_block_heights(self, chain_ids: List[str]) -> List[BlockHeightResult]:
+        raise NotImplementedError

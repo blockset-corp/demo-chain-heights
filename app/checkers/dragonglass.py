@@ -13,3 +13,6 @@ class DragonGlassCheckRunner(CheckRunner, HttpBase):
 
     def get_block_height(self, chain_id: str) -> BlockHeightResult:
         pass
+
+    def get_all_block_heights(self, chain_ids: List[str]) -> List[BlockHeightResult]:
+        raise NotImplementedError

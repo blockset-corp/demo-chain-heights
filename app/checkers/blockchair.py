@@ -44,3 +44,22 @@ class BlockChairCheckRunner(CheckRunner, HttpBase):
         if chain_id in ('ripple-mainnet', 'stellar-mainnet'):
             key = 'best_ledger_height'
         return BlockHeightResult(result['data'][key])
+
+    def get_all_block_heights(self, chain_ids: List[str]) -> List[BlockHeightResult]:
+        params = {
+            'key': self.token
+        }
+        resp = self.session.request('get', f'https://api.blockchair.com/stats', params)
+        resp.raise_for_status()
+        results = []
+        data = resp.json()
+        for chain_id in chain_ids:
+            bc_chain_id = self.chain_map[chain_id][1]
+            if bc_chain_id not in data['data']:  # chain wasn't fetched, get it manually
+                results.append(self.get_block_height(chain_id))
+            else:
+                key = 'best_block_height'
+                if chain_id in ('ripple-mainnet', 'stellar-mainnet'):
+                    key = 'best_ledger_height'
+                results.append(BlockHeightResult(height=data['data'][bc_chain_id]['data'][key]))
+        return results

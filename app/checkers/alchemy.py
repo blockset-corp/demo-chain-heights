@@ -30,3 +30,6 @@ class AlchemyCheckRunner(CheckRunner, HttpBase):
         resp.raise_for_status()
         result = resp.json()
         return BlockHeightResult(height=int(result['result'], 16))
+
+    def get_all_block_heights(self, chain_ids: List[str]) -> List[BlockHeightResult]:
+        raise NotImplementedError

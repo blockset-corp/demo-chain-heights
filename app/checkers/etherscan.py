@@ -38,3 +38,6 @@ class EtherscanCheckRunner(CheckRunner, HttpBase):
         req.raise_for_status()
         result = req.json()
         return BlockHeightResult(height=int(result['result'], 16))
+
+    def get_all_block_heights(self, chain_ids: List[str]) -> List[BlockHeightResult]:
+        raise NotImplementedError

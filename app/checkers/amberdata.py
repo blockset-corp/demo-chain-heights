@@ -32,3 +32,6 @@ class AmberdataCheckRunner(CheckRunner, HttpBase):
         resp.raise_for_status()
         result = resp.json()
         return BlockHeightResult(height=int(result['payload']['number']))
+
+    def get_all_block_heights(self, chain_ids: List[str]) -> List[BlockHeightResult]:
+        raise NotImplementedError
