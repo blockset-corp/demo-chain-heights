@@ -14,7 +14,8 @@ import os
 from pathlib import Path
 import dj_database_url
 import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration, CeleryIntegration
+from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.celery import CeleryIntegration
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
