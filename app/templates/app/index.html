@@ -5,8 +5,6 @@
     <script>
         // time since last run
         window.lastRun = Math.floor({{ check.completed.timestamp }});
-        // list of tool tip objects which must be disposed before they are removed from the page
-        window.toolTipList = [];
 
         function updateTimeSince() {
             let nowSec = Math.floor(Date.now() / 1000);
@@ -14,17 +12,21 @@
         }
 
         $(function () {
+            // enable tooltips
+            $('.ms-overlay').tooltip({container: 'body'});
+            
             // reload the table automatically
             setInterval(function () {
                 $.ajax({
                     url: '{% url "difftable" %}',
                     success: function (data) {
                         // remove any visible tooltips
-                        window.toolTipList.forEach(function (tt) {
-                            tt.dispose();
-                        });
+                        $('.ms-overlay').tooltip('dispose');
                         // replace table content
-                        $('#difftable').html(data);
+                        setTimeout(function () {
+                            $('#difftable').html(data);
+                            $('.ms-overlay').tooltip({container: 'body'});
+                        }, 1);
                     }
                 })
             }, 5 * 1000);
