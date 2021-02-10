@@ -18,6 +18,7 @@ from django.urls import path
 from app import views
 
 urlpatterns = [
-    path('', views.index),
+    path('', views.index, name='index'),
+    path('difftable/', views.difftable_partial, name='difftable'),
     path('admin/', admin.site.urls),
 ]

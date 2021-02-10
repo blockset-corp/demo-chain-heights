@@ -40,7 +40,7 @@ class BlockChairCheckRunner(CheckRunner, HttpBase):
         resp = self.session.request('get', url, params=params)
         resp.raise_for_status()
         result = resp.json()
-        key = 'blocks'
+        key = 'best_block_height'
         if chain_id in ('ripple-mainnet', 'stellar-mainnet'):
             key = 'best_ledger_height'
         return BlockHeightResult(result['data'][key])

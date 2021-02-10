@@ -47,7 +47,7 @@ class CheckInstance(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=('type', 'completed'), name='check_type_completed')
+            models.Index(fields=('type', '-completed'), name='check_type_completed')
         ]
 
     def __str__(self):
@@ -60,7 +60,7 @@ class CheckInstance(models.Model):
 
 class ChainHeightResult(models.Model):
     blockchain = models.ForeignKey(Blockchain, on_delete=models.CASCADE)
-    check_instance = models.ForeignKey(CheckInstance, on_delete=models.CASCADE)
+    check_instance = models.ForeignKey(CheckInstance, on_delete=models.CASCADE, related_name='results')
     started = models.DateTimeField()
     duration = models.IntegerField(help_text='Duration in milliseconds')
     status = models.CharField(max_length=2, choices=RESULT_STATUSES)
@@ -89,3 +89,10 @@ class ChainHeightResult(models.Model):
         if self.best_result is None:
             return 0
         return self.height - self.best_result.height
+
+    def difference_from_best_status(self):
+        if self.difference_from_best() < -1:
+            return 'danger'
+        if self.difference_from_best() < 0:
+            return 'warning'
+        return 'success'

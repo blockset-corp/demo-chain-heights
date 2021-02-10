@@ -1,5 +1,26 @@
 {% extends "app/base.html" %}
+{% load check_extras %}
+
+{% block javascript %}
+    <script>
+    $(function() {
+        // reload the table every 10 seconds
+        setInterval(function() {
+            $.ajax({
+                url: '{% url "difftable" %}',
+                success: function(data) {
+                    $('#difftable').html(data);
+                }
+            })
+        }, 5*1000);
+    });
+    </script>
+{% endblock %}
 
 {% block content %}
-    <h1>Hello</h1>
+    <div class="container mt-4">
+    <h3>Block Diff</h3>
+    <p>Distance from the best imported block height by all tracked services. Updated every 10 seconds.</p>
+    {% include "app/difftable.html" %}
+    </div>
 {% endblock %}
