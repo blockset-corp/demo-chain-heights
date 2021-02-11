@@ -28,13 +28,15 @@ def update_supported_blockchain(service_slug):
     for chain in chains_result:
         existing = Blockchain.objects.filter(slug=chain.slug, service=svc, is_testnet=chain.testnet)
         if existing.count():
+            existing.first().create_meta_if_not_exists()
             continue
-        Blockchain.objects.create(
+        blockchain = Blockchain.objects.create(
             name=chain.name,
             slug=chain.slug,
             service=svc,
             is_testnet=chain.testnet
         )
+        blockchain.create_meta_if_not_exists()
 
 
 @shared_task

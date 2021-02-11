@@ -20,6 +20,7 @@ def get_difftable_context(request):
         'chain_heights': {},
         'chains': [],
         'services': [],
+        'chain_metas': {},
         'check': None
     }
     check, height_results = get_check_and_results(request)
@@ -29,6 +30,7 @@ def get_difftable_context(request):
         chain_set = set()
         service_set = set()
         for result in height_results:
+            context['chain_metas'][result.blockchain.meta.chain_slug] = result.blockchain.meta
             if result.difference_from_best() == 0:
                 context['chain_heights'][result.blockchain.slug] = result.height
             all_heights[result.blockchain.slug].append(result.height)
@@ -57,8 +59,8 @@ def get_check_and_results(request):
         results = ChainHeightResult.objects.filter(
             check_instance=check
         ).select_related(
-            'blockchain', 'blockchain__service', 'best_result__blockchain',
-            'best_result__blockchain__service'
+            'blockchain', 'blockchain__service', 'blockchain__meta',
+            'best_result__blockchain', 'best_result__blockchain__service'
         )
     return check, results
 

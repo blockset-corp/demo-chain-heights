@@ -44,6 +44,7 @@ def get_all_check_runners() -> Mapping[str, CheckRunner]:
 
     return {
         'blockset': BlocksetCheckRunner(),
+        'blocksetnode': BlocksetCheckRunner(node=True),
         'blockchain': BlockchainCheckRunner(),
         'etherscan': EtherscanCheckRunner(),
         'blockcypher': BlockCypherCheckRunner(),

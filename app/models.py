@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
 from autoslug import AutoSlugField
 
 CHECK_TYPE_BLOCK_HEIGHT = 'bh'
@@ -20,10 +21,28 @@ RESULT_STATUSES = (
 class Service(models.Model):
     name = models.CharField(max_length=60)
     slug = AutoSlugField(populate_from='name')
-    bulk_chain_query = models.BooleanField(default=False)
+    bulk_chain_query = models.BooleanField(default=False,
+                                           help_text='Whether or not to fetch chain height updates in bulk')
 
     def __str__(self):
         return self.name
+
+
+class BlockchainMeta(models.Model):
+    display_name = models.CharField(max_length=60, help_text='Well-known proper noun for this blockchain')
+    chain_slug = models.SlugField(help_text='Common slug for this blockchain not including network prefix')
+    mainnet_slug = models.CharField(max_length=50, default='mainnet')
+    testnet_slugs = ArrayField(models.CharField(max_length=25, blank=True),
+                               help_text='Testnet slug (or slugs) such as "testnet" or "ropsten"')
+    height_tolerance_success = models.IntegerField(default=0,
+                                                   help_text='Number of blocks behind that is considered OK')
+    height_tolerance_warning = models.IntegerField(default=-1,
+                                                   help_text='Number of blocks behind that should emit a warning')
+    height_tolerance_error = models.IntegerField(default=-2,
+                                                 help_text='Number of blocks behind that should sound the alarms')
+
+    def __str__(self):
+        return self.display_name
 
 
 class Blockchain(models.Model):
@@ -31,6 +50,7 @@ class Blockchain(models.Model):
     service = models.ForeignKey(Service, on_delete=models.CASCADE)
     slug = models.CharField(max_length=60)
     is_testnet = models.BooleanField(default=False)
+    meta = models.ForeignKey(BlockchainMeta, on_delete=models.SET_NULL, null=True)
 
     class Meta:
         indexes = [
@@ -39,6 +59,25 @@ class Blockchain(models.Model):
 
     def __str__(self):
         return f'{self.service} {self.name}'
+
+    def create_meta_if_not_exists(self):
+        slug, network_slug = self.slug.split('-')
+        metas = BlockchainMeta.objects.filter(chain_slug=slug)
+        if metas.count() > 0:
+            self.meta = metas.first()
+            self.save()
+        else:
+            if network_slug not in ('mainnet', 'testnet'):
+                testnet_slug = network_slug
+            else:
+                testnet_slug = 'testnet'
+            meta = BlockchainMeta.objects.create(
+                display_name=' '.join(self.name.split()[0:-1]),
+                chain_slug=slug,
+                testnet_slugs=[testnet_slug]
+            )
+            self.meta = meta
+            self.save()
 
 
 class CheckInstance(models.Model):
@@ -92,8 +131,10 @@ class ChainHeightResult(models.Model):
         return self.height - self.best_result.height
 
     def difference_from_best_status(self):
-        if self.difference_from_best() < -1:
+        diff = self.difference_from_best()
+        if diff <= -abs(self.blockchain.meta.height_tolerance_error) or diff > 0:
             return 'danger'
-        if self.difference_from_best() < 0:
+        if diff <= -abs(self.blockchain.meta.height_tolerance_warning):
             return 'warning'
-        return 'success'
+        if diff <= -abs(self.blockchain.meta.height_tolerance_success):
+            return 'success'

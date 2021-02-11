@@ -5,8 +5,9 @@ from ._utils import HttpBase
 
 
 class BlocksetCheckRunner(CheckRunner, HttpBase):
-    def __init__(self):
+    def __init__(self, node=False):
         self.token = settings.BLOCKSET_TOKEN
+        self.height_key = 'block_height' if node else 'verified_height'
         super().__init__()
 
     def get_supported_chains(self) -> List[Blockchain]:
@@ -21,7 +22,7 @@ class BlocksetCheckRunner(CheckRunner, HttpBase):
 
     def get_block_height(self, chain_id: str) -> BlockHeightResult:
         chain = self.fetch('get', 'blockchains/' + chain_id)
-        return BlockHeightResult(chain['verified_height'])
+        return BlockHeightResult(chain[self.height_key])
 
     def get_all_block_heights(self, chain_ids: List[str]) -> List[BlockHeightResult]:
         mainnets = self.fetch('get', 'blockchains')['_embedded']['blockchains']
@@ -29,11 +30,11 @@ class BlocksetCheckRunner(CheckRunner, HttpBase):
         all_chains = {b['id']: b for b in mainnets + testnets}
         result = []
         for chain_id in chain_ids:
-            if chain_id not in all_chains or 'verified_height' not in all_chains[chain_id]:
-                print(f'verified_height not found for {chain_id}')
+            if chain_id not in all_chains or self.height_key not in all_chains[chain_id]:
+                print(f'{self.height_key} not found for {chain_id}')
                 result.append(BlockHeightResult(0))
             else:
-                result.append(BlockHeightResult(height=all_chains[chain_id]['verified_height']))
+                result.append(BlockHeightResult(height=all_chains[chain_id][self.height_key]))
         return result
 
     def fetch(self, method, resource, **params):

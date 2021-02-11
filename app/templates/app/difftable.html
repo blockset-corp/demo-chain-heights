@@ -12,9 +12,16 @@
         <tbody>
         {% for chain in chains %}
             <tr>
+                {% get_chain_meta chain_metas chain as chain_meta %}
+                {% is_testnet chain_meta chain as is_testnet %}
                 {% get_height chain_heights chain as chain_height %}
-                <th scope="row">{{ chain }}</th>
-                <th scope="row">{{ chain_height }}</th>
+                <th scope="row">
+                    {{ chain_meta.display_name }}
+                    {% if is_testnet %}
+                        <span class="badge badge-pill badge-secondary">{{ chain|network_name }}</span>
+                    {% endif %}
+                </th>
+                <td>{{ chain_height }}</td>
                 {% for service in services %}
                     {% get_result results_by_service_by_chain chain service as result %}
                     {% if result %}
