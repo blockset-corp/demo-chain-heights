@@ -106,6 +106,7 @@ class ChainHeightResult(models.Model):
     status = models.CharField(max_length=2, choices=RESULT_STATUSES)
     height = models.IntegerField(default=0)
     error = models.TextField(default='')
+    error_details = models.ForeignKey('CheckError', null=True, on_delete=models.SET_NULL)
     best_result = models.ForeignKey('ChainHeightResult', on_delete=models.CASCADE, null=True)
 
     def __str__(self):
@@ -138,3 +139,20 @@ class ChainHeightResult(models.Model):
             return 'warning'
         if diff >= -abs(self.blockchain.meta.height_tolerance_success):
             return 'success'
+
+
+class CheckError(models.Model):
+    check_instance = models.ForeignKey(CheckInstance, on_delete=models.CASCADE)
+    blockchain = models.ForeignKey(Blockchain, on_delete=models.CASCADE)
+    method = models.CharField(max_length=4, default='')
+    url = models.CharField(max_length=2048, default='')
+    request_headers = models.JSONField(default=lambda: {})
+    request_body = models.TextField(default='')
+    status_code = models.IntegerField(default=-1)
+    response_headers = models.JSONField(default=lambda: {})
+    response_body = models.TextField(default='')
+    error_message = models.TextField()
+    traceback = models.TextField(default='')
+
+    def __str__(self):
+        return self.error_message

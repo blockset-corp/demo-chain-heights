@@ -1,14 +1,15 @@
 import time
+import traceback
 from collections import namedtuple
 from django.utils import timezone
+from django.forms import model_to_dict
 from celery import shared_task, chord
 from celery.utils.log import get_task_logger
 from requests import HTTPError
 
 from .checkers import get_all_check_runners
-from .models import Service, Blockchain, CheckInstance, ChainHeightResult, \
+from .models import Service, Blockchain, CheckInstance, ChainHeightResult, CheckError, \
     RESULT_STATUS_OK, RESULT_STATUS_WARN, RESULT_STATUS_ERR, CHECK_TYPE_BLOCK_HEIGHT
-
 
 logger = get_task_logger('app.tasks')
 
@@ -62,8 +63,9 @@ def update_blockchain_heights_bulk(service_slug, chain_ids, check_id):
     if all_heights is None:
         all_heights = [None for _ in chain_ids]
     for chain_id, chain_height in zip(chain_ids, all_heights):
+        blockchain = Blockchain.objects.get(service__slug=service_slug, slug=chain_id)
         kwargs = {
-            'blockchain': Blockchain.objects.get(service__slug=service_slug, slug=chain_id),
+            'blockchain': blockchain,
             'check_instance_id': check_id,
             'started': results.started_time,
             'duration': results.duration / int(len(chain_ids) * .8),
@@ -72,16 +74,22 @@ def update_blockchain_heights_bulk(service_slug, chain_ids, check_id):
         if chain_height is not None:
             kwargs['height'] = chain_height.height
         if results.error is not None:
-            kwargs['error'] = results.error
+            check_error_clone = CheckError(**model_to_dict(results.error))
+            check_error_clone.check_instance_id = check_id
+            check_error_clone.blockchain = blockchain
+            check_error_clone.save()
+            kwargs['error'] = check_error_clone.error_message
+            kwargs['error_details'] = check_error_clone
         ChainHeightResult.objects.create(**kwargs)
 
 
 @shared_task
 def update_blockchain_height(service_slug, chain_id, check_id):
     runner = get_check_runners().get(service_slug)
+    blockchain = Blockchain.objects.get(service__slug=service_slug, slug=chain_id)
     result = run_http_method(runner.get_block_height, chain_id)
     kwargs = {
-        'blockchain': Blockchain.objects.get(service__slug=service_slug, slug=chain_id),
+        'blockchain': blockchain,
         'check_instance_id': check_id,
         'started': result.started_time,
         'duration': result.duration,
@@ -90,7 +98,11 @@ def update_blockchain_height(service_slug, chain_id, check_id):
     if result.result is not None:
         kwargs['height'] = result.result.height
     if result.error is not None:
-        kwargs['error'] = result.error
+        result.error.blockchain = blockchain
+        result.error.check_instance_id = check_id
+        result.error.save()
+        kwargs['error'] = result.error.error_message
+        kwargs['error_details'] = result.error
     ChainHeightResult.objects.create(**kwargs)
 
 
@@ -118,7 +130,8 @@ def complete_check(check_id):
         result.save()
 
 
-HttpMethodResult = namedtuple('HttpMethodResult', ('result', 'error', 'status', 'started_time', 'duration'))
+HttpMethodResult = namedtuple('HttpMethodResult', (
+    'result', 'error', 'status', 'started_time', 'duration'))
 
 
 def run_http_method(method, *args, **kwargs):
@@ -130,7 +143,17 @@ def run_http_method(method, *args, **kwargs):
     try:
         result = method(*args, **kwargs)
     except HTTPError as e:
-        error = f'{e} Response Headers: {e.response.headers} Response: {e.response.text}'
+        error = CheckError(
+            method=e.request.method,
+            url=e.request.url,
+            request_headers={k: v for k, v in e.request.headers.items()},
+            request_body=e.request.body if e.request.body is not None else '',
+            status_code=e.response.status_code,
+            response_headers={k: v for k, v in e.response.headers.items()},
+            response_body=e.response.text if e.response.text is not None else '',
+            error_message=str(e),
+            traceback=''.join(traceback.format_exc())
+        )
         if e.response is not None:
             if 400 <= e.response.status_code < 500:
                 # error in the 400s are not a service failure
@@ -140,7 +163,7 @@ def run_http_method(method, *args, **kwargs):
         else:
             status = RESULT_STATUS_ERR
     except Exception as e:
-        error = str(e)
+        error = CheckError(error_message=str(e), traceback=''.join(traceback.format_exc()))
         status = RESULT_STATUS_ERR
     end_ns = time.time_ns()
     return HttpMethodResult(result, error, status, started_time, (end_ns - started_ns) / 1_000_000)

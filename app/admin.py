@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Service, Blockchain, BlockchainMeta, CheckInstance, ChainHeightResult
+from .models import Service, Blockchain, BlockchainMeta, CheckInstance, \
+    ChainHeightResult, CheckError
 
 
 @admin.register(Service)
@@ -37,3 +38,8 @@ class ChainHeightResultAdmin(admin.ModelAdmin):
             'blockchain', 'blockchain__service', 'blockchain__meta', 'best_result__blockchain',
             'best_result__blockchain__service'
         )
+
+
+@admin.register(CheckError)
+class CheckErrorAdmin(admin.ModelAdmin):
+    pass
