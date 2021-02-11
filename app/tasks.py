@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.forms import model_to_dict
 from celery import shared_task, chord
 from celery.utils.log import get_task_logger
-from requests import HTTPError
+from requests import RequestException
 
 from .checkers import get_all_check_runners
 from .models import Service, Blockchain, CheckInstance, ChainHeightResult, CheckError, \
@@ -142,22 +142,19 @@ def run_http_method(method, *args, **kwargs):
     started_ns = time.time_ns()
     try:
         result = method(*args, **kwargs)
-    except HTTPError as e:
-        error = CheckError(
-            method=e.request.method,
-            url=e.request.url,
-            request_headers={k: v for k, v in e.request.headers.items()},
-            request_body=e.request.body if e.request.body is not None else '',
-            status_code=e.response.status_code,
-            response_headers={k: v for k, v in e.response.headers.items()},
-            response_body=e.response.text if e.response.text is not None else '',
-            error_message=str(e),
-            traceback=''.join(traceback.format_exc())
-        )
+    except RequestException as e:
+        error = CheckError(error_message=str(e), traceback=''.join(traceback.format_exc()))
+        if e.request is not None:
+            error.method = e.request.method
+            error.url = e.request.url
+            error.request_headers = {k: v for k, v in e.request.headers.items()}
+            error.request_body = e.request.body if e.request.body is not None else ''
         if e.response is not None:
+            error.status_code = e.response.status_code
+            error.response_headers = {k: v for k, v in e.response.headers.items()}
+            error.response_body = e.response.text if e.response.text is not None else ''
             if 400 <= e.response.status_code < 500:
-                # error in the 400s are not a service failure
-                status = RESULT_STATUS_WARN
+                status = RESULT_STATUS_WARN  # error in the 400s are not a service failure
             else:
                 status = RESULT_STATUS_ERR
         else:

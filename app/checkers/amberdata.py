@@ -11,7 +11,7 @@ class AmberdataCheckRunner(CheckRunner, HttpBase):
         'bitcoinsv-mainnet': ('Bitcoin SV Mainnet', 'bitcoin-sv-mainnet', False),
         'ethereum-mainnet': ('Ethereum Mainnet', 'ethereum-mainnet', False),
         'litecoin-mainnet': ('Litecoin Mainnet', 'litecoin-mainnet', False),
-        'zcash-mainnet': ('Zcash Mainnet', 'zcash-mainet', False)
+        'zcash-mainnet': ('Zcash Mainnet', 'zcash-mainnet', False)
     }
 
     def __init__(self):
