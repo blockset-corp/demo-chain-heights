@@ -6,11 +6,28 @@ import django.db.models.deletion
 
 
 def create_blockchain_metas(apps, schema_editor):
+    BlockchainMeta = apps.get_model('app', 'BlockchainMeta')
     Blockchain = apps.get_model('app', 'Blockchain')
 
     for blockchain in Blockchain.objects.filter():
         print(f'updating {blockchain.slug}')
-        blockchain.create_meta_if_not_exists()
+        slug, network_slug = blockchain.slug.split('-')
+        metas = BlockchainMeta.objects.filter(chain_slug=slug)
+        if metas.count() > 0:
+            blockchain.meta = metas.first()
+            blockchain.save()
+        else:
+            if network_slug not in ('mainnet', 'testnet'):
+                testnet_slug = network_slug
+            else:
+                testnet_slug = 'testnet'
+            meta = BlockchainMeta.objects.create(
+                display_name=' '.join(blockchain.name.split()[0:-1]),
+                chain_slug=slug,
+                testnet_slugs=[testnet_slug]
+            )
+            blockchain.meta = meta
+            blockchain.save()
 
 
 class Migration(migrations.Migration):
