@@ -1,3 +1,4 @@
+import json
 from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from autoslug import AutoSlugField
@@ -114,9 +115,11 @@ class ChainHeightResult(models.Model):
 
     def service_slug(self):
         return self.blockchain.service.slug
+    service_slug.short_description = 'Service'
 
     def blockchain_slug(self):
         return self.blockchain.slug
+    blockchain_slug.short_description = 'Blockchain'
 
     def duration_ms(self):
         return f'{self.duration}ms'
@@ -130,6 +133,7 @@ class ChainHeightResult(models.Model):
         if self.best_result is None:
             return 0
         return self.height - self.best_result.height
+    difference_from_best.short_description = 'Diff'
 
     def difference_from_best_status(self):
         diff = self.difference_from_best()
@@ -144,15 +148,30 @@ class ChainHeightResult(models.Model):
 class CheckError(models.Model):
     check_instance = models.ForeignKey(CheckInstance, on_delete=models.CASCADE)
     blockchain = models.ForeignKey(Blockchain, on_delete=models.CASCADE)
+    created = models.DateTimeField(auto_now_add=True)
     method = models.CharField(max_length=4, default='')
     url = models.CharField(max_length=2048, default='')
-    request_headers = models.JSONField(default=lambda: {})
+    request_headers = models.JSONField(default=dict)
     request_body = models.TextField(default='')
     status_code = models.IntegerField(default=-1)
-    response_headers = models.JSONField(default=lambda: {})
+    response_headers = models.JSONField(default=dict)
     response_body = models.TextField(default='')
     error_message = models.TextField()
     traceback = models.TextField(default='')
 
     def __str__(self):
         return self.error_message
+
+    def blockchain_slug(self):
+        return self.blockchain.slug
+    blockchain_slug.short_description = 'Blockchain'
+
+    def service_slug(self):
+        return self.blockchain.service.slug
+    service_slug.short_description = 'Service'
+
+    def error_message_truncated(self):
+        if len(self.error_message) > 50:
+            return self.error_message[:50] + '...'
+        return self.error_message
+    error_message_truncated.short_description = 'Message'
