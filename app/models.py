@@ -136,5 +136,5 @@ class ChainHeightResult(models.Model):
             return 'danger'
         if diff <= -abs(self.blockchain.meta.height_tolerance_warning):
             return 'warning'
-        if diff <= -abs(self.blockchain.meta.height_tolerance_success):
+        if diff >= -abs(self.blockchain.meta.height_tolerance_success):
             return 'success'
