@@ -6,7 +6,7 @@
         <th scope="col"></th>
         <th scope="col"></th>
         {% for service in services %}
-            <th scope="col">{{ service }}</th>
+            <th scope="col"><a href="{% url "service_detail" service_slug=service %}">{{ service }}</a></th>
         {% endfor %}
         </thead>
         <tbody>
