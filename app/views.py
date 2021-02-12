@@ -21,15 +21,13 @@ def difftable_partial(request):
 
 def service_detail(request, service_slug):
     service = get_object_or_404(Service, slug=service_slug)
-    errors = CheckError.objects.filter(
-        blockchain__service=service
-    ).select_related('blockchain').order_by('-pk')
+    errors = CheckError.objects.for_service(service).select_related('blockchain').order_by('-pk')
     errors_paginator = Paginator(errors, 10)
     errors_page = request.GET.get('error_page', None)
     context = {
         'service': service,
         'errors_page': errors_paginator.get_page(errors_page),
-        'error_counts': get_error_counts(CheckError.objects.filter(blockchain__service=service))
+        'error_counts': get_error_counts(CheckError.objects.for_service(service))
     }
     recent_checks = CheckInstance.objects.filter(
         type__exact=CHECK_TYPE_BLOCK_HEIGHT

@@ -1,4 +1,5 @@
 import json
+import re
 from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from autoslug import AutoSlugField
@@ -162,6 +163,33 @@ ERROR_TAGS = (
     (ERROR_TAG_UNKNOWN, 'Unknown Error'),
 )
 
+banned_headers = [
+    re.compile(r'.*authorization.*', re.IGNORECASE),
+    re.compile(r'.*cookie.*', re.IGNORECASE),
+    re.compile(r'.*key.*', re.IGNORECASE),
+    re.compile(r'.*token.*', re.IGNORECASE)
+]
+
+def _is_banned(s):
+    for matcher in banned_headers:
+        if matcher.match(s):
+            return True
+    return False
+
+def _clean_headers(headers):
+    return {
+        k: v for k, v in headers.items() if not _is_banned(k) and not _is_banned(v)
+    }
+
+
+class CheckErrorQuerySet(models.QuerySet):
+    def for_service(self, service):
+        return self.filter(
+            blockchain__service=service
+        ).exclude(
+            check_instance__completed__isnull=True
+        )
+
 
 class CheckError(models.Model):
     check_instance = models.ForeignKey(CheckInstance, on_delete=models.CASCADE)
@@ -177,6 +205,8 @@ class CheckError(models.Model):
     error_message = models.TextField()
     traceback = models.TextField(default='')
     tag = models.CharField(choices=ERROR_TAGS, max_length=10, default=ERROR_TAG_UNKNOWN)
+
+    objects = CheckErrorQuerySet.as_manager()
 
     def __str__(self):
         return self.error_message
@@ -194,3 +224,9 @@ class CheckError(models.Model):
             return self.error_message[:50] + '...'
         return self.error_message
     error_message_truncated.short_description = 'Message'
+
+    def request_headers_cleaned(self):
+        return _clean_headers(self.request_headers)
+
+    def response_headers_cleaned(self):
+        return _clean_headers(self.request_headers)

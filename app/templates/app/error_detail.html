@@ -7,8 +7,8 @@
 
 {% block javascript %}
     <script src="{% static 'vendor/json-viewer.js' %}"></script>
-    {{ error.request_headers|json_script:"request-headers" }}
-    {{ error.response_headers|json_script:"response-headers" }}
+    {{ error.request_headers_cleaned|json_script:"request-headers" }}
+    {{ error.response_headers_cleaned|json_script:"response-headers" }}
     <script>
         $(function () {
             let reqHeaders = JSON.parse(document.getElementById('request-headers').textContent);
