@@ -2,10 +2,9 @@ import time
 import traceback
 from collections import namedtuple
 from django.utils import timezone
-from django.forms import model_to_dict
 from celery import shared_task, chord
 from celery.utils.log import get_task_logger
-from requests import RequestException
+from requests import exceptions as requests_exceptions
 
 from .checkers import get_all_check_runners
 from .models import Service, Blockchain, CheckInstance, ChainHeightResult, CheckError, \
@@ -147,7 +146,7 @@ def run_http_method(method, *args, **kwargs):
     started_ns = time.time_ns()
     try:
         result = method(*args, **kwargs)
-    except RequestException as e:
+    except requests_exceptions.RequestException as e:
         error = CheckError(error_message=str(e), traceback=''.join(traceback.format_exc()))
         if e.request is not None:
             error.method = e.request.method

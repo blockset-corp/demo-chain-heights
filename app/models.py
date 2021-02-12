@@ -145,6 +145,22 @@ class ChainHeightResult(models.Model):
             return 'success'
 
 
+ERROR_TAG_TIMEOUT = 'timeout'
+ERROR_TAG_SSL= 'ssl'
+ERROR_TAG_ENCODING = 'encoding'
+ERROR_TAG_HTTP = 'http'
+ERROR_TAG_SYSTEM = 'system'
+ERROR_TAG_UNKNOWN = 'unknown'
+ERROR_TAGS = (
+    (ERROR_TAG_TIMEOUT, 'Timeout'),
+    (ERROR_TAG_SSL, 'SSL Error'),
+    (ERROR_TAG_ENCODING, 'Encoding Error'),
+    (ERROR_TAG_HTTP, 'HTTP Error'),
+    (ERROR_TAG_SYSTEM, 'System Error'),
+    (ERROR_TAG_UNKNOWN, 'Unknown Error'),
+)
+
+
 class CheckError(models.Model):
     check_instance = models.ForeignKey(CheckInstance, on_delete=models.CASCADE)
     blockchain = models.ForeignKey(Blockchain, on_delete=models.CASCADE)
@@ -158,6 +174,7 @@ class CheckError(models.Model):
     response_body = models.TextField(default='')
     error_message = models.TextField()
     traceback = models.TextField(default='')
+    tag = models.CharField(choices=ERROR_TAGS, max_length=10, default=ERROR_TAG_UNKNOWN)
 
     def __str__(self):
         return self.error_message
