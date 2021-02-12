@@ -19,16 +19,21 @@
     {{ error_counts|json_script:"error-counts" }}
     <script>
         $(function () {
+            var colors = ['f94144', '577590', 'f8961e', 'f9c74f', '90be6d', '43aa8b', 'f3722c'];
             var errorCounts = JSON.parse(document.getElementById('error-counts').textContent);
             var data = {
                 labels: errorCounts.labels,
-                datasets: [
-                    {
-                        label: "Errors Per Hour",
-                        data: errorCounts.data
-                    }
-                ]
+                datasets: []
             };
+            var colorCounter = 0;
+            for (var tag of Object.keys(errorCounts.data)) {
+                data.datasets.push({
+                    label: tag,
+                    data: errorCounts.data[tag],
+                    backgroundColor: '#' + colors[colorCounter]
+                });
+                colorCounter++;
+            }
             var el = $("#error-graph-canvas");
             var chart = new Chart(el, {
                 type: "bar",
@@ -37,16 +42,20 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     legend: {
-                        display: false,
+                        display: true,
                     },
                     scales: {
                         xAxes: [{
+                            stacked: true,
                             ticks: {
                                 display: false
                             },
                             gridLines: {
                                 display: false
                             }
+                        }],
+                        yAxes: [{
+                            stacked: true
                         }]
                     }
                 }

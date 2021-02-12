@@ -14,8 +14,9 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from app import views
+import debug_toolbar
 
 urlpatterns = [
     path('', views.index, name='index'),
@@ -24,4 +25,5 @@ urlpatterns = [
     path('difftable/', views.difftable_partial, name='difftable'),
     path('json_summary/', views.json_summary, name='json_summary'),
     path('admin/', admin.site.urls),
+    path('__debug__/', include(debug_toolbar.urls)),
 ]

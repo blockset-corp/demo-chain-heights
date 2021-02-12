@@ -21,7 +21,9 @@ def difftable_partial(request):
 
 def service_detail(request, service_slug):
     service = get_object_or_404(Service, slug=service_slug)
-    errors = CheckError.objects.filter(blockchain__service=service).order_by('-pk')
+    errors = CheckError.objects.filter(
+        blockchain__service=service
+    ).select_related('blockchain').order_by('-pk')
     errors_paginator = Paginator(errors, 10)
     errors_page = request.GET.get('error_page', None)
     context = {
@@ -140,19 +142,20 @@ def get_error_counts(qs, distance=datetime.timedelta(days=7)):
     now = timezone.now()
     then = now - distance
     counts = qs.filter(created__gt=then).annotate(
-        started_hour=Trunc('created', 'hour')
-    ).values('started_hour').annotate(errors=Count('id'))
-    hour_buckets = {}
-    for val in counts:
-        hour_buckets[val['started_hour'].strftime(tick_time_format)] = val['errors']
+        started_hour=Trunc('created', 'hour'),
+    ).values('tag', 'started_hour').annotate(errors=Count('tag'))
+    seen_tags = set()
+    hour_buckets = defaultdict(dict)
+    for agg in counts:
+        seen_tags.add(agg['tag'])
+        hour_buckets[agg['tag']][agg['started_hour'].strftime(tick_time_format)] = agg['errors']
     hours = int(distance.total_seconds() / 60 / 60)
-    ticks = {'labels': [], 'data': []}
+    ticks = {'labels': [], 'data': defaultdict(list)}
     for i in range(hours, -1, -1):
         date = (now - datetime.timedelta(hours=i)).replace(minute=0, second=0, microsecond=0)
         tick_date = date.strftime(tick_time_format)
-        value = 0
-        if tick_date in hour_buckets:
-            value = hour_buckets[tick_date]
         ticks['labels'].append(tick_date)
-        ticks['data'].append(value)
+        for tag in seen_tags:
+            value = hour_buckets[tag].get(tick_date, 0)
+            ticks['data'][tag].append(value)
     return ticks

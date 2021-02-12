@@ -36,6 +36,9 @@ HOSTNAME = os.environ.get('HOSTNAME', 'localhost')
 if HOSTNAME:
     ALLOWED_HOSTS.append(HOSTNAME)
 
+INTERNAL_IPS = [
+    '127.0.0.1'
+]
 
 # Application definition
 
@@ -49,11 +52,13 @@ INSTALLED_APPS = [
     'app',
     'django_celery_beat',
     'django_celery_results',
-    'bootstrap4'
+    'bootstrap4',
+    'debug_toolbar'
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

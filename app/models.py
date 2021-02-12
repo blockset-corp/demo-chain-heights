@@ -146,13 +146,15 @@ class ChainHeightResult(models.Model):
 
 
 ERROR_TAG_TIMEOUT = 'timeout'
-ERROR_TAG_SSL= 'ssl'
+ERROR_TAG_CONNECTION = 'connection'
+ERROR_TAG_SSL = 'ssl'
 ERROR_TAG_ENCODING = 'encoding'
 ERROR_TAG_HTTP = 'http'
 ERROR_TAG_SYSTEM = 'system'
 ERROR_TAG_UNKNOWN = 'unknown'
 ERROR_TAGS = (
     (ERROR_TAG_TIMEOUT, 'Timeout'),
+    (ERROR_TAG_CONNECTION, 'Connection Error'),
     (ERROR_TAG_SSL, 'SSL Error'),
     (ERROR_TAG_ENCODING, 'Encoding Error'),
     (ERROR_TAG_HTTP, 'HTTP Error'),

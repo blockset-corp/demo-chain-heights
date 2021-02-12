@@ -37,6 +37,10 @@
 
         <ul class="list-group mt-3">
             <li class="list-group-item d-flex justify-content-between align-items-center">
+                <strong>Tag</strong>
+                <span class="badge badge-secondary large">{{ error.get_tag_display }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
                 <strong>Timestamp</strong>
                 <span>{{ error.created|date }} {{ error.created|time }}</span>
             </li>
@@ -91,7 +95,7 @@
             </div>
         </div>
 
-         <div class="card mt-3">
+        <div class="card mt-3">
             <div class="card-header">Traceback</div>
             <div class="card-body">
                 <pre style="white-space: pre-wrap">{{ error.traceback }}</pre>

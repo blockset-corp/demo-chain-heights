@@ -8,7 +8,9 @@ from requests import exceptions as requests_exceptions
 
 from .checkers import get_all_check_runners
 from .models import Service, Blockchain, CheckInstance, ChainHeightResult, CheckError, \
-    RESULT_STATUS_OK, RESULT_STATUS_WARN, RESULT_STATUS_ERR, CHECK_TYPE_BLOCK_HEIGHT
+    RESULT_STATUS_OK, RESULT_STATUS_WARN, RESULT_STATUS_ERR, CHECK_TYPE_BLOCK_HEIGHT, \
+    ERROR_TAG_TIMEOUT, ERROR_TAG_SYSTEM, ERROR_TAG_SSL, ERROR_TAG_ENCODING, ERROR_TAG_HTTP, \
+    ERROR_TAG_UNKNOWN, ERROR_TAG_CONNECTION
 
 logger = get_task_logger('app.tasks')
 
@@ -62,7 +64,7 @@ def update_blockchain_heights_bulk(service_slug, chain_ids, check_id):
     if all_heights is None:
         all_heights = [None for _ in chain_ids]
     service = Service.objects.get(slug=service_slug)
-    if results.error is not  None:
+    if results.error is not None:
         all_blockchain, _ = Blockchain.objects.get_or_create(
             name='ALL',
             service=service,
@@ -147,7 +149,11 @@ def run_http_method(method, *args, **kwargs):
     try:
         result = method(*args, **kwargs)
     except requests_exceptions.RequestException as e:
-        error = CheckError(error_message=str(e), traceback=''.join(traceback.format_exc()))
+        error = CheckError(
+            error_message=str(e),
+            traceback=''.join(traceback.format_exc()),
+            tag=classify_error_tag(e)
+        )
         if e.request is not None:
             error.method = e.request.method
             error.url = e.request.url
@@ -164,10 +170,32 @@ def run_http_method(method, *args, **kwargs):
         else:
             status = RESULT_STATUS_ERR
     except Exception as e:
-        error = CheckError(error_message=str(e), traceback=''.join(traceback.format_exc()))
+        error = CheckError(
+            error_message=str(e),
+            traceback=''.join(traceback.format_exc()),
+            tag=ERROR_TAG_SYSTEM
+        )
         status = RESULT_STATUS_ERR
     end_ns = time.time_ns()
     return HttpMethodResult(result, error, status, started_time, (end_ns - started_ns) / 1_000_000)
+
+
+def classify_error_tag(exc):
+    e = requests_exceptions
+    tag_map = {
+        ERROR_TAG_HTTP: (e.HTTPError, e.TooManyRedirects),
+        ERROR_TAG_SSL: (e.SSLError,),
+        ERROR_TAG_SYSTEM: (e.ProxyError, e.URLRequired, e.InvalidURL),
+        ERROR_TAG_ENCODING: (e.ChunkedEncodingError, e.ContentDecodingError),
+        ERROR_TAG_TIMEOUT: (e.Timeout,),
+        ERROR_TAG_CONNECTION: (e.ConnectionError,),
+    }
+    # try to classify based on exception class
+    for k, v in tag_map.items():
+        for exc_cls in v:
+            if isinstance(exc, exc_cls):
+                return k
+    return ERROR_TAG_UNKNOWN
 
 
 check_runners = None
