@@ -46,7 +46,7 @@ def update_all_blockchain_heights():
     check = CheckInstance.objects.create(started=timezone.now(), type=CHECK_TYPE_BLOCK_HEIGHT)
     jobs = []
     for svc in services:
-        chains = Blockchain.objects.filter(service=svc)
+        chains = Blockchain.objects.filter(service=svc).exclude(meta__isnull=True)
         if svc.bulk_chain_query:
             jobs.append(update_blockchain_heights_bulk.s(svc.slug, [chain.slug for chain in chains], check.pk))
         else:
@@ -62,10 +62,19 @@ def update_blockchain_heights_bulk(service_slug, chain_ids, check_id):
     all_heights = results.result
     if all_heights is None:
         all_heights = [None for _ in chain_ids]
+    service = Service.objects.get(slug=service_slug)
+    if results.error is not  None:
+        all_blockchain, _ = Blockchain.objects.get_or_create(
+            name='ALL',
+            service=service,
+            slug=service_slug + '-all',
+        )
+        results.error.check_instance_id = check_id
+        results.error.blockchain = all_blockchain
+        results.error.save()
     for chain_id, chain_height in zip(chain_ids, all_heights):
-        blockchain = Blockchain.objects.get(service__slug=service_slug, slug=chain_id)
         kwargs = {
-            'blockchain': blockchain,
+            'blockchain': Blockchain.objects.get(service__slug=service_slug, slug=chain_id),
             'check_instance_id': check_id,
             'started': results.started_time,
             'duration': results.duration / int(len(chain_ids) * .8),
@@ -74,12 +83,8 @@ def update_blockchain_heights_bulk(service_slug, chain_ids, check_id):
         if chain_height is not None:
             kwargs['height'] = chain_height.height
         if results.error is not None:
-            check_error_clone = CheckError(**model_to_dict(results.error))
-            check_error_clone.check_instance_id = check_id
-            check_error_clone.blockchain = blockchain
-            check_error_clone.save()
-            kwargs['error'] = check_error_clone.error_message
-            kwargs['error_details'] = check_error_clone
+            kwargs['error'] = results.error.error_message
+            kwargs['error_details'] = results.error
         ChainHeightResult.objects.create(**kwargs)
 
 

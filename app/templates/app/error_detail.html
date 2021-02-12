@@ -1,0 +1,102 @@
+{% extends "app/base.html" %}
+{% load static %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'vendor/json-viewer.css' %}">
+{% endblock %}
+
+{% block javascript %}
+    <script src="{% static 'vendor/json-viewer.js' %}"></script>
+    {{ error.request_headers|json_script:"request-headers" }}
+    {{ error.response_headers|json_script:"response-headers" }}
+    <script>
+        $(function () {
+            let reqHeaders = JSON.parse(document.getElementById('request-headers').textContent);
+            let respHeaders = JSON.parse(document.getElementById('response-headers').textContent);
+
+            if (Object.entries(reqHeaders).length > 0) {
+                $("#request-headers-json-render").jsonViewer(reqHeaders);
+            } else {
+                $("#request-headers-json-render").text("n/a");
+            }
+
+            if (Object.entries(respHeaders).length > 0) {
+                $("#response-headers-json-render").jsonViewer(respHeaders);
+            } else {
+                $("#response-headers-json-render").text("n/a")
+            }
+        })
+    </script>
+{% endblock %}
+
+{% block content %}
+
+    <div class="container mt-4">
+
+        <h3>Error</h3>
+
+        <ul class="list-group mt-3">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <strong>Timestamp</strong>
+                <span>{{ error.created|date }} {{ error.created|time }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <strong>URL</strong>
+                <span>{{ error.url }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <strong>Status Code</strong>
+                <span>
+                    {% if error.status_code > 0 %}
+                        {{ error.status_code }}
+                    {% else %}
+                        n/a
+                    {% endif %}
+                </span>
+            </li>
+        </ul>
+
+        <div class="card mt-3">
+            <div class="card-header">Error Message</div>
+            <div class="card-body">
+                <pre style="white-space: pre-wrap" style="white-space: pre-wrap">{{ error.error_message }}</pre>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">Request Headers</div>
+            <div class="card-body">
+                <pre id="request-headers-json-render" style="white-space: pre-wrap"></pre>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">Request Body</div>
+            <div class="card-body">
+                <pre style="white-space: pre-wrap">{{ error.request_body|default:"n/a" }}</pre>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">Response Headers</div>
+            <div class="card-body">
+                <pre id="response-headers-json-render"></pre>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">Response Body</div>
+            <div class="card-body">
+                <pre style="white-space: pre-wrap">{{ error.response_body|default:"n/a" }}</pre>
+            </div>
+        </div>
+
+         <div class="card mt-3">
+            <div class="card-header">Traceback</div>
+            <div class="card-body">
+                <pre style="white-space: pre-wrap">{{ error.traceback }}</pre>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

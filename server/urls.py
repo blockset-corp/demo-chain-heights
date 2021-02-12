@@ -20,6 +20,7 @@ from app import views
 urlpatterns = [
     path('', views.index, name='index'),
     path('service/<slug:service_slug>/', views.service_detail, name='service_detail'),
+    path('error/<int:error_id>/', views.error_detail, name='error_detail'),
     path('difftable/', views.difftable_partial, name='difftable'),
     path('json_summary/', views.json_summary, name='json_summary'),
     path('admin/', admin.site.urls),

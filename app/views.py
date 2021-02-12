@@ -38,11 +38,20 @@ def service_detail(request, service_slug):
         context['latest_check_results'] = ChainHeightResult.objects.filter(
             check_instance=latest_check,
             blockchain__service=service
-        ).select_related(
+        ).exclude(blockchain__meta__isnull=True).select_related(
             'blockchain', 'blockchain__service', 'blockchain__meta',
             'best_result__blockchain', 'best_result__blockchain__service'
         )
     return render(request, 'app/service_detail.html', context)
+
+
+def error_detail(request, error_id):
+    error = get_object_or_404(CheckError, pk=error_id)
+    context = {
+        'error': error,
+        'height_results': ChainHeightResult.objects.filter(error_details=error)
+    }
+    return render(request, 'app/error_detail.html', context)
 
 
 def json_summary(request):
@@ -118,8 +127,8 @@ def get_check_and_results(request):
     if check_instances.count() > 0:
         check = check_instances.first()
         results = ChainHeightResult.objects.filter(
-            check_instance=check
-        ).select_related(
+            check_instance=check,
+        ).exclude(blockchain__meta__isnull=True).select_related(
             'blockchain', 'blockchain__service', 'blockchain__meta',
             'best_result__blockchain', 'best_result__blockchain__service'
         )
