@@ -47,7 +47,7 @@ def update_all_blockchain_heights():
     check = CheckInstance.objects.create(started=timezone.now(), type=CHECK_TYPE_BLOCK_HEIGHT)
     jobs = []
     for svc in services:
-        chains = Blockchain.objects.filter(service=svc).exclude(meta__isnull=True)
+        chains = Blockchain.objects.filter(service=svc, ignore=False).exclude(meta__isnull=True)
         if svc.bulk_chain_query:
             jobs.append(update_blockchain_heights_bulk.s(svc.slug, [chain.slug for chain in chains], check.pk))
         else:

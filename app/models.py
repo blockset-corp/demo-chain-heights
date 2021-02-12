@@ -53,6 +53,7 @@ class Blockchain(models.Model):
     slug = models.CharField(max_length=60)
     is_testnet = models.BooleanField(default=False)
     meta = models.ForeignKey(BlockchainMeta, on_delete=models.SET_NULL, null=True)
+    ignore = models.BooleanField(default=False)
 
     class Meta:
         indexes = [
