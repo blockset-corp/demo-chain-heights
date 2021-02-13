@@ -27,7 +27,7 @@ def service_detail(request, service_slug):
     context = {
         'service': service,
         'errors_page': errors_paginator.get_page(errors_page),
-        'error_counts': get_error_counts(CheckError.objects.for_service(service))
+        'error_counts': CheckError.objects.for_service(service).get_error_counts()
     }
     recent_checks = CheckInstance.objects.filter(
         type__exact=CHECK_TYPE_BLOCK_HEIGHT
@@ -134,26 +134,3 @@ def get_check_and_results(request):
         )
     return check, results
 
-
-def get_error_counts(qs, distance=datetime.timedelta(days=7)):
-    tick_time_format = '%y-%m-%d %H:00'
-    now = timezone.now()
-    then = now - distance
-    counts = qs.filter(created__gt=then).annotate(
-        started_hour=Trunc('created', 'hour'),
-    ).values('tag', 'started_hour').annotate(errors=Count('tag'))
-    seen_tags = set()
-    hour_buckets = defaultdict(dict)
-    for agg in counts:
-        seen_tags.add(agg['tag'])
-        hour_buckets[agg['tag']][agg['started_hour'].strftime(tick_time_format)] = agg['errors']
-    hours = int(distance.total_seconds() / 60 / 60)
-    ticks = {'labels': [], 'data': defaultdict(list)}
-    for i in range(hours, -1, -1):
-        date = (now - datetime.timedelta(hours=i)).replace(minute=0, second=0, microsecond=0)
-        tick_date = date.strftime(tick_time_format)
-        ticks['labels'].append(tick_date)
-        for tag in seen_tags:
-            value = hour_buckets[tag].get(tick_date, 0)
-            ticks['data'][tag].append(value)
-    return ticks

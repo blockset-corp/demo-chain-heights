@@ -1,7 +1,11 @@
-import json
 import re
+import datetime
+from collections import defaultdict
 from django.db import models
+from django.db.models import F, Avg, Count
+from django.db.models.functions import Trunc
 from django.contrib.postgres.fields import ArrayField
+from django.utils import timezone
 from autoslug import AutoSlugField
 
 CHECK_TYPE_BLOCK_HEIGHT = 'bh'
@@ -101,6 +105,40 @@ class CheckInstance(models.Model):
         return s
 
 
+class ChainHeightResultQuerySet(models.QuerySet):
+    def get_height_averages(self, distance=datetime.timedelta(days=7)):
+        now = timezone.now()
+        then = now - distance
+        averages = self.filter(
+            check_instance__started__gt=then
+        ).exclude(
+            check_instance__completed__isnull=True
+        ).annotate(
+            started_hour=Trunc('started', 'hour'),
+            diff=F('height') - F('best_result__height')
+        ).values(
+            'blockchain__slug','started_hour'
+        ).annotate(
+            diff_avg=Avg('diff')
+        )
+        tick_time_format = '%y-%m-%d %H:00'
+        during_buckets = defaultdict(dict)
+        for agg in averages:
+            during_buckets[agg['blockchain__slug']][agg['started_hour'].strftime(tick_time_format)] = agg['diff_avg']
+        hours = int(distance.total_seconds() / 60 / 60)
+        chains = defaultdict(lambda: {'labels': [], 'data': []})
+        known_chains = list(during_buckets.keys())
+        known_chains.sort()
+        for i in range(hours, -1, -1):
+            date = (now - datetime.timedelta(hours=i)).replace(minute=0, second=0, microsecond=0)
+            tick_date = date.strftime(tick_time_format)
+            for chain_id in known_chains:
+                value = during_buckets[chain_id].get(tick_date, 0.0)
+                chains[chain_id]['labels'].append(tick_date)
+                chains[chain_id]['data'].append(value)
+        return chains
+
+
 class ChainHeightResult(models.Model):
     blockchain = models.ForeignKey(Blockchain, on_delete=models.CASCADE)
     check_instance = models.ForeignKey(CheckInstance, on_delete=models.CASCADE, related_name='results')
@@ -111,6 +149,8 @@ class ChainHeightResult(models.Model):
     error = models.TextField(default='')
     error_details = models.ForeignKey('CheckError', null=True, on_delete=models.SET_NULL)
     best_result = models.ForeignKey('ChainHeightResult', on_delete=models.CASCADE, null=True)
+
+    objects = ChainHeightResultQuerySet.as_manager()
 
     def __str__(self):
         return f'{self.blockchain} {self.get_status_display()} {self.height}'
@@ -190,6 +230,29 @@ class CheckErrorQuerySet(models.QuerySet):
         ).exclude(
             check_instance__completed__isnull=True
         )
+
+    def get_error_counts(self, distance=datetime.timedelta(days=7)):
+        tick_time_format = '%y-%m-%d %H:00'
+        now = timezone.now()
+        then = now - distance
+        counts = self.filter(created__gt=then).annotate(
+            started_hour=Trunc('created', 'hour'),
+        ).values('tag', 'started_hour').annotate(errors=Count('tag'))
+        seen_tags = set()
+        hour_buckets = defaultdict(dict)
+        for agg in counts:
+            seen_tags.add(agg['tag'])
+            hour_buckets[agg['tag']][agg['started_hour'].strftime(tick_time_format)] = agg['errors']
+        hours = int(distance.total_seconds() / 60 / 60)
+        ticks = {'labels': [], 'data': defaultdict(list)}
+        for i in range(hours, -1, -1):
+            date = (now - datetime.timedelta(hours=i)).replace(minute=0, second=0, microsecond=0)
+            tick_date = date.strftime(tick_time_format)
+            ticks['labels'].append(tick_date)
+            for tag in seen_tags:
+                value = hour_buckets[tag].get(tick_date, 0)
+                ticks['data'][tag].append(value)
+        return ticks
 
 
 class CheckError(models.Model):
