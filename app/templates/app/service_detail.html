@@ -42,10 +42,9 @@
                     datasets: [{
                         label: chainId + ' height',
                         data: chainData,
-                        backgroundColor: '#212B30',
-                        borderColor: '#415562',
-                        pointBackgroundColor: '#314049',
-                        pointBorderWidth: 0,
+                        backgroundColor: '#D2E0EE',
+                        borderColor: '#2C7EDB',
+                        pointRadius: 0,
                         spanGaps: true
                     }],
                 };
@@ -155,6 +154,11 @@
 
             <h5 class="mt-3 mb-2">
                 {{ chain.latest_height.blockchain.meta.display_name }}
+                <small>
+                    <span class="badge badge-pill badge-{% if chain.latest_height.blockchain.is_testnet %}secondary{% else %}primary{% endif %}">
+                        {{ chain.latest_height.blockchain.slug|network_name }}
+                    </span>
+                </small>
             </h5>
             <div class="avg-height-diff-container">
                 <canvas id="{{ chain.latest_height.blockchain.slug }}-avg-height-diff-canvas"></canvas>
