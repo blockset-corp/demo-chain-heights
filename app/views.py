@@ -30,7 +30,7 @@ def service_detail(request, service_slug):
     ).exclude(completed__isnull=True).order_by('-completed')
     if recent_checks.count() > 0:
         latest_check = recent_checks.first()
-        chain_info = ChainHeightResult.objects.for_service(service).get_height_averages()
+        chain_info = ChainHeightResult.objects.for_service(service).no_errors().get_height_averages()
         context['latest_check'] = latest_check
         latest_check_results = ChainHeightResult.objects.for_service(
             service, check_instance=latest_check

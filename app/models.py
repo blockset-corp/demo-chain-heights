@@ -117,6 +117,9 @@ class ChainHeightResultQuerySet(models.QuerySet):
         )
         return self.filter(**kw).exclude(exclude)
 
+    def no_errors(self):
+        return self.exclude(~Q(error_details__isnull=True) | ~Q(error=''))
+
     def common_related(self):
         return self.select_related(
             'blockchain', 'blockchain__service', 'blockchain__meta',

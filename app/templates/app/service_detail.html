@@ -37,13 +37,6 @@
             let heightLabels = getJson('height-avg-labels');
             for (let chainId of chainIds) {
                 let chainData = getJson(chainId + '-data');
-                let avg = chainData.reduce((p, c) => p + c, 0) / chainData.length;
-                chainData = chainData.map((d) => {
-                    if (d < (avg * 2)) {
-                        return null;
-                    }
-                    return d;
-                });
                 let data = {
                     labels: heightLabels,
                     datasets: [{
