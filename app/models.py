@@ -2,7 +2,7 @@ import re
 import datetime
 from collections import defaultdict
 from django.db import models
-from django.db.models import F, Avg, Count
+from django.db.models import Q, F, Avg, Count
 from django.db.models.functions import Trunc
 from django.contrib.postgres.fields import ArrayField
 from django.utils import timezone
@@ -106,6 +106,23 @@ class CheckInstance(models.Model):
 
 
 class ChainHeightResultQuerySet(models.QuerySet):
+    def for_service(self, service, check_instance=None):
+        kw = {'blockchain__service': service}
+        if check_instance is not None:
+            kw['check_instance'] = check_instance
+        exclude = (
+                Q(check_instance__completed__isnull=True)
+                | Q(blockchain__meta__isnull=True)
+                | Q(blockchain__ignore=True)
+        )
+        return self.filter(**kw).exclude(exclude)
+
+    def common_related(self):
+        return self.select_related(
+            'blockchain', 'blockchain__service', 'blockchain__meta',
+            'best_result__blockchain', 'best_result__blockchain__service'
+        )
+
     def get_height_averages(self, distance=datetime.timedelta(days=7)):
         now = timezone.now()
         then = now - distance
@@ -117,7 +134,7 @@ class ChainHeightResultQuerySet(models.QuerySet):
             started_hour=Trunc('started', 'hour'),
             diff=F('height') - F('best_result__height')
         ).values(
-            'blockchain__slug','started_hour'
+            'blockchain__slug', 'started_hour'
         ).annotate(
             diff_avg=Avg('diff')
         )
@@ -157,10 +174,12 @@ class ChainHeightResult(models.Model):
 
     def service_slug(self):
         return self.blockchain.service.slug
+
     service_slug.short_description = 'Service'
 
     def blockchain_slug(self):
         return self.blockchain.slug
+
     blockchain_slug.short_description = 'Blockchain'
 
     def duration_ms(self):
@@ -175,6 +194,7 @@ class ChainHeightResult(models.Model):
         if self.best_result is None:
             return 0
         return self.height - self.best_result.height
+
     difference_from_best.short_description = 'Diff'
 
     def difference_from_best_status(self):
@@ -211,11 +231,13 @@ banned_headers = [
     re.compile(r'.*token.*', re.IGNORECASE)
 ]
 
+
 def _is_banned(s):
     for matcher in banned_headers:
         if matcher.match(s):
             return True
     return False
+
 
 def _clean_headers(headers):
     return {
@@ -277,16 +299,19 @@ class CheckError(models.Model):
 
     def blockchain_slug(self):
         return self.blockchain.slug
+
     blockchain_slug.short_description = 'Blockchain'
 
     def service_slug(self):
         return self.blockchain.service.slug
+
     service_slug.short_description = 'Service'
 
     def error_message_truncated(self):
         if len(self.error_message) > 50:
             return self.error_message[:50] + '...'
         return self.error_message
+
     error_message_truncated.short_description = 'Message'
 
     def request_headers_cleaned(self):

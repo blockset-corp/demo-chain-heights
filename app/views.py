@@ -1,11 +1,7 @@
-import datetime
 from collections import defaultdict
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.core.paginator import Paginator
-from django.db.models import Count
-from django.db.models.functions import Trunc
-from django.utils import timezone
 from .models import Service, CheckInstance, ChainHeightResult, CheckError, CHECK_TYPE_BLOCK_HEIGHT
 
 
@@ -34,14 +30,20 @@ def service_detail(request, service_slug):
     ).exclude(completed__isnull=True).order_by('-completed')
     if recent_checks.count() > 0:
         latest_check = recent_checks.first()
+        chain_info = ChainHeightResult.objects.for_service(service).get_height_averages()
         context['latest_check'] = latest_check
-        context['latest_check_results'] = ChainHeightResult.objects.filter(
-            check_instance=latest_check,
-            blockchain__service=service
-        ).exclude(blockchain__meta__isnull=True).select_related(
-            'blockchain', 'blockchain__service', 'blockchain__meta',
-            'best_result__blockchain', 'best_result__blockchain__service'
-        )
+        latest_check_results = ChainHeightResult.objects.for_service(
+            service, check_instance=latest_check
+        ).common_related()
+        for height_result in latest_check_results:
+            chain_info[height_result.blockchain.slug]['latest_height'] = height_result
+            chain_info[height_result.blockchain.slug]['script_tag'] = f'{height_result.blockchain.slug}-data'
+        chain_ids = list(chain_info.keys())
+        chain_ids.sort()
+        context['all_chains'] = [chain_info[k] for k in chain_ids]
+        context['all_chain_ids'] = chain_ids
+        if len(chain_ids) > 0:
+            context['height_avg_labels'] = chain_info[chain_ids[0]]['labels']
     return render(request, 'app/service_detail.html', context)
 
 
