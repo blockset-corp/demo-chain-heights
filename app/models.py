@@ -139,7 +139,7 @@ class ChainHeightResultQuerySet(models.QuerySet):
         ).values(
             'blockchain__slug', 'started_hour'
         ).annotate(
-            diff_avg=Avg('diff'),
+            diff_avg=Avg('diff', filter=Q(error_details__isnull=True) & Q(error='')),
             error_count=Count('id', filter=Q(error_details__isnull=False) | ~Q(error='')),
             success_count=Count('id', filter=Q(error_details__isnull=True) & Q(error=''))
         )
