@@ -126,7 +126,7 @@ class ChainHeightResultQuerySet(models.QuerySet):
             'best_result__blockchain', 'best_result__blockchain__service'
         )
 
-    def get_height_averages(self, distance=datetime.timedelta(days=7)):
+    def get_hourly_stats(self, distance=datetime.timedelta(days=7)):
         now = timezone.now()
         then = now - distance
         averages = self.filter(
@@ -139,21 +139,30 @@ class ChainHeightResultQuerySet(models.QuerySet):
         ).values(
             'blockchain__slug', 'started_hour'
         ).annotate(
-            diff_avg=Avg('diff')
+            diff_avg=Avg('diff'),
+            error_count=Count('id', filter=Q(error_details__isnull=False) | ~Q(error='')),
+            success_count=Count('id', filter=Q(error_details__isnull=True) & Q(error=''))
         )
         tick_time_format = '%y-%m-%d %H:00'
         during_buckets = defaultdict(dict)
         for agg in averages:
-            during_buckets[agg['blockchain__slug']][agg['started_hour'].strftime(tick_time_format)] = agg['diff_avg']
+            time_bucket = agg['started_hour'].strftime(tick_time_format)
+            during_buckets[agg['blockchain__slug']][time_bucket] = {
+                'diff_avg': agg['diff_avg'],
+                'error_count': agg['error_count'],
+                'success_count': agg['success_count']
+            }
         hours = int(distance.total_seconds() / 60 / 60)
         chains = defaultdict(lambda: {'labels': [], 'data': []})
         known_chains = list(during_buckets.keys())
         known_chains.sort()
+        empty_value = {'diff_avg': 0.0, 'error_count': 0, 'success_count': 0}
         for i in range(hours, -1, -1):
             date = (now - datetime.timedelta(hours=i)).replace(minute=0, second=0, microsecond=0)
             tick_date = date.strftime(tick_time_format)
             for chain_id in known_chains:
-                value = during_buckets[chain_id].get(tick_date, 0.0)
+                value = dict(empty_value)
+                value.update(during_buckets[chain_id].get(tick_date, empty_value))
                 chains[chain_id]['labels'].append(tick_date)
                 chains[chain_id]['data'].append(value)
         return chains

@@ -62,13 +62,30 @@
             let heightLabels = getJson('height-avg-labels');
             for (let chainId of chainIds) {
                 let chainData = getJson(chainId + '-data');
+                let diffData = [];
+                let errorRateData = [];
+                for (let tick of chainData) {
+                    diffData.push(tick.diff_avg);
+                    if (tick.error_count && tick.success_count) {
+                        errorRateData.push(tick.error_count / tick.success_count);
+                    } else {
+                        errorRateData.push(0.0);
+                    }
+                }
                 let data = {
                     labels: heightLabels,
                     datasets: [{
                         label: chainId + ' height',
-                        data: chainData,
+                        data: diffData,
                         backgroundColor: '#D2E0EE',
                         borderColor: '#2C7EDB',
+                        pointRadius: 0,
+                        spanGaps: true
+                    }, {
+                        label: chainId + ' error rate',
+                        data: errorRateData,
+                        backgroundColor: '#FECAC3',
+                        borderColor: '#FC4D36',
                         pointRadius: 0,
                         spanGaps: true
                     }],
@@ -99,9 +116,7 @@
                                 gridLines: {display: false},
                             }],
                             yAxes: [{
-                                ticks: {
-                                    suggestedMax: 0.0,
-                                }
+
                             }]
                         }
                     }
@@ -181,8 +196,12 @@
             </tbody>
         </table>
 
-        <h3 class="mt-4">Historical Height Difference</h3>
-        <p>Average distance from the best imported block height each hour over the last 7 days.</p>
+        <h3 class="mt-4">Historical Height Difference <small>(last 7 days)</small></h3>
+        <p>
+            <span style="color: #2C7EDB">Average distance from the best imported block height each hour.</span>
+            <span style="color: #FC4D36">Error rate each hour.</span>
+        </p>
+
 
         {% for chain in all_chains %}
 
