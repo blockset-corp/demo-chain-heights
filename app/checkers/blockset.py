@@ -5,9 +5,11 @@ from ._utils import HttpBase
 
 
 class BlocksetCheckRunner(CheckRunner, HttpBase):
-    def __init__(self, node=False):
+    def __init__(self, node=False, endpoint='https://api.blockset.com', verify=True):
         self.token = settings.BLOCKSET_TOKEN
         self.height_key = 'block_height' if node else 'verified_height'
+        self.endpoint = endpoint
+        self.verify = verify
         super().__init__()
 
     def get_supported_chains(self) -> List[Blockchain]:
@@ -43,7 +45,9 @@ class BlocksetCheckRunner(CheckRunner, HttpBase):
             params['headers'].update(headers)
         else:
             params['headers'] = headers
-        resp = self.session.request(method, 'https://api.blockset.com/' + resource, **params)
+        if 'verify' not in params:
+            params['verify'] = self.verify
+        resp = self.session.request(method, self.endpoint + resource, **params)
         resp.raise_for_status()
         if len(resp.content) > 0:
             return resp.json()

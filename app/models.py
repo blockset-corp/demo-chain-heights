@@ -29,6 +29,7 @@ class Service(models.Model):
     slug = AutoSlugField(populate_from='name')
     bulk_chain_query = models.BooleanField(default=False,
                                            help_text='Whether or not to fetch chain height updates in bulk')
+    private = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name

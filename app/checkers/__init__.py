@@ -41,10 +41,12 @@ def get_all_check_runners() -> Mapping[str, CheckRunner]:
     from .amberdata import AmberdataCheckRunner
     from .alchemy import AlchemyCheckRunner
     from .xrpl import XrplCheckRunner
+    from django.conf import settings
 
     return {
         'blockset': BlocksetCheckRunner(),
         'blocksetnode': BlocksetCheckRunner(node=True),
+        'blockset_do': BlocksetCheckRunner(endpoint=f'https://{settings.BLOCKSET_DO_IP}', verify=False),
         'blockchain': BlockchainCheckRunner(),
         'etherscan': EtherscanCheckRunner(),
         'blockcypher': BlockCypherCheckRunner(),
