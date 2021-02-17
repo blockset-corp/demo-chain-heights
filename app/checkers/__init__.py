@@ -46,7 +46,11 @@ def get_all_check_runners() -> Mapping[str, CheckRunner]:
     return {
         'blockset': BlocksetCheckRunner(),
         'blocksetnode': BlocksetCheckRunner(node=True),
-        'blockset_do': BlocksetCheckRunner(endpoint=f'https://{settings.BLOCKSET_DO_IP}', verify=False),
+        'blockset_do': BlocksetCheckRunner(
+            endpoint=f'https://{settings.BLOCKSET_DO_IP}',
+            verify=False,
+            additional_headers=lambda: {'host': 'api.blockset.com'}
+        ),
         'blockchain': BlockchainCheckRunner(),
         'etherscan': EtherscanCheckRunner(),
         'blockcypher': BlockCypherCheckRunner(),

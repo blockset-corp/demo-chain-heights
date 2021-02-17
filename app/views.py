@@ -130,6 +130,7 @@ def get_check_and_results(request):
         check = check_instances.first()
         results = ChainHeightResult.objects.filter(
             check_instance=check,
+            blockchain__service__private=False
         ).exclude(blockchain__meta__isnull=True).select_related(
             'blockchain', 'blockchain__service', 'blockchain__meta',
             'best_result__blockchain', 'best_result__blockchain__service'
