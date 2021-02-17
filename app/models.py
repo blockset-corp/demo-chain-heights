@@ -258,7 +258,6 @@ class PingResultQuerySet(models.QuerySet):
                 tick[2] = tick_result['avg_dur']
                 tick[3] = tick_result['error_count']
             all_ticks.append(tick)
-        print(len(all_ticks))
         return all_ticks
 
 
@@ -317,7 +316,7 @@ def _clean_headers(headers):
 class CheckErrorQuerySet(models.QuerySet):
     def for_service(self, service):
         return self.filter(
-            blockchain__service=service
+            Q(blockchain__service=service) | Q(service=service)
         ).exclude(
             check_instance__completed__isnull=True
         )
