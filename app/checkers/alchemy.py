@@ -14,6 +14,12 @@ class AlchemyCheckRunner(CheckRunner, HttpBase):
         return [Blockchain('Ethereum Mainnet', 'ethereum-mainnet', False),
                 Blockchain('Ethereum Ropsten', 'ethereum-ropsten', True)]
 
+    def get_supported_checks(self) -> List[str]:
+        return ['height']
+
+    def get_ping(self):
+        raise NotImplementedError
+
     def get_block_height(self, chain_id: str) -> BlockHeightResult:
         if chain_id == 'ethereum-mainnet':
             url = 'https://eth-mainnet.alchemyapi.io/v2'

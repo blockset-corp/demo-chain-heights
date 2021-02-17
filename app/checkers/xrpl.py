@@ -11,6 +11,12 @@ class XrplCheckRunner(CheckRunner, HttpBase):
     def get_supported_chains(self) -> List[Blockchain]:
         return [Blockchain('Ripple Mainnet', 'ripple-mainnet', False)]
 
+    def get_supported_checks(self) -> List[str]:
+        return ['height']
+
+    def get_ping(self):
+        raise NotImplementedError
+
     def get_block_height(self, chain_id: str) -> BlockHeightResult:
         if chain_id != 'ripple-mainnet':
             raise Exception(f'Unsupported blockchain={chain_id}')

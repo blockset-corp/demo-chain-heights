@@ -12,6 +12,12 @@ class BlockstreamCheckRunner(CheckRunner, HttpBase):
         return [Blockchain('Bitcoin Mainnet', 'bitcoin-mainnet', False),
                 Blockchain('Bitcoin Testnet', 'bitcoin-testnet', True)]
 
+    def get_supported_checks(self) -> List[str]:
+        return ['height']
+
+    def get_ping(self):
+        raise NotImplementedError
+
     def get_block_height(self, chain_id: str) -> BlockHeightResult:
         if chain_id == 'bitcoin-mainnet':
             url = 'https://blockstream.info'

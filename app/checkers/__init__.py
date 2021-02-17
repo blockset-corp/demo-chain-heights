@@ -21,11 +21,19 @@ class CheckRunner(ABC):
         pass
 
     @abstractmethod
+    def get_supported_checks(self) -> List[str]:
+        pass
+
+    @abstractmethod
     def get_block_height(self, chain_id: str) -> BlockHeightResult:
         pass
 
     @abstractmethod
     def get_all_block_heights(self, chain_ids: List[str]) -> List[BlockHeightResult]:
+        pass
+
+    @abstractmethod
+    def get_ping(self):
         pass
 
 
@@ -41,16 +49,16 @@ def get_all_check_runners() -> Mapping[str, CheckRunner]:
     from .amberdata import AmberdataCheckRunner
     from .alchemy import AlchemyCheckRunner
     from .xrpl import XrplCheckRunner
-    from django.conf import settings
+    # from django.conf import settings
 
     return {
         'blockset': BlocksetCheckRunner(),
         'blocksetnode': BlocksetCheckRunner(node=True),
-        'blockset_do': BlocksetCheckRunner(
-            endpoint=f'https://{settings.BLOCKSET_DO_IP}',
-            verify=False,
-            additional_headers=lambda: {'host': 'api.blockset.com'}
-        ),
+        # 'blockset_do': BlocksetCheckRunner(
+        #     endpoint=f'https://{settings.BLOCKSET_DO_IP}',
+        #     verify=False,
+        #     additional_headers=lambda: {'host': 'api.blockset.com'}
+        # ),
         'blockchain': BlockchainCheckRunner(),
         'etherscan': EtherscanCheckRunner(),
         'blockcypher': BlockCypherCheckRunner(),

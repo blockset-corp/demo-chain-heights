@@ -30,6 +30,12 @@ class BlockChairCheckRunner(CheckRunner, HttpBase):
     def get_supported_chains(self) -> List[Blockchain]:
         return [Blockchain(v[0], k, v[2]) for k, v in self.chain_map.items()]
 
+    def get_supported_checks(self) -> List[str]:
+        return ['height', 'height_bulk']
+
+    def get_ping(self):
+        raise NotImplementedError
+
     def get_block_height(self, chain_id: str) -> BlockHeightResult:
         if chain_id not in self.chain_map:
             raise Exception(f'Unsupported blockchain={chain_id}')

@@ -10,7 +10,7 @@ from .checkers import get_all_check_runners
 from .models import Service, Blockchain, CheckInstance, ChainHeightResult, CheckError, \
     RESULT_STATUS_OK, RESULT_STATUS_WARN, RESULT_STATUS_ERR, CHECK_TYPE_BLOCK_HEIGHT, \
     ERROR_TAG_TIMEOUT, ERROR_TAG_SYSTEM, ERROR_TAG_SSL, ERROR_TAG_ENCODING, ERROR_TAG_HTTP, \
-    ERROR_TAG_UNKNOWN, ERROR_TAG_CONNECTION
+    ERROR_TAG_UNKNOWN, ERROR_TAG_CONNECTION, CHECK_TYPE_PING, PingResult
 
 logger = get_task_logger('app.tasks')
 
@@ -24,7 +24,9 @@ def update_all_supported_blockchains():
 
 @shared_task
 def update_supported_blockchain(service_slug):
-    runner = get_check_runners().get(service_slug)
+    runner = get_check_runners().get(service_slug, None)
+    if runner is None:
+        return
     chains_result = runner.get_supported_chains()
     svc = Service.objects.get(slug=service_slug)
     for chain in chains_result:
@@ -47,13 +49,55 @@ def update_all_blockchain_heights():
     check = CheckInstance.objects.create(started=timezone.now(), type=CHECK_TYPE_BLOCK_HEIGHT)
     jobs = []
     for svc in services:
+        runner = get_check_runners().get(svc.slug, None)
+        if runner is None:
+            continue
         chains = Blockchain.objects.filter(service=svc, ignore=False).exclude(meta__isnull=True)
-        if svc.bulk_chain_query:
+        if svc.bulk_chain_query and 'height_bulk' in runner.get_supported_checks():
             jobs.append(update_blockchain_heights_bulk.s(svc.slug, [chain.slug for chain in chains], check.pk))
-        else:
+        elif 'height' in runner.get_supported_checks():
             for chain in chains:
                 jobs.append(update_blockchain_height.s(svc.slug, chain.slug, check.pk))
     chord(jobs, complete_check.si(check.pk)).apply_async()
+
+
+@shared_task
+def update_all_pings():
+    check = CheckInstance.objects.create(started=timezone.now(), type=CHECK_TYPE_PING)
+    services = Service.objects.all()
+    jobs = []
+    for svc in services:
+        runner = get_check_runners().get(svc.slug, None)
+        if runner is not None and 'ping' in runner.get_supported_checks():
+            jobs.append(do_ping.s(svc.slug, check.pk))
+    chord(jobs, complete_ping_check.si(check.pk)).apply_async()
+
+
+@shared_task
+def do_ping(service_slug, check_id):
+    runner = get_check_runners().get(service_slug)
+    result = run_http_method(runner.get_ping)
+    service = Service.objects.get(slug=service_slug)
+    kwargs = {
+        'service': service,
+        'check_instance_id': check_id,
+        'started': result.started_time,
+        'duration': result.duration,
+        'status': result.status,
+    }
+    if result.error:
+        result.error.service = service
+        result.error.check_instance_id = check_id
+        result.error.save()
+        kwargs['error_details'] = result.error
+    PingResult.objects.create(**kwargs)
+
+
+@shared_task
+def complete_ping_check(check_id):
+    check = CheckInstance.objects.get(pk=check_id)
+    check.completed = timezone.now()
+    check.save()
 
 
 @shared_task

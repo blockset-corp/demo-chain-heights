@@ -26,6 +26,12 @@ class BlocksetCheckRunner(CheckRunner, HttpBase):
             result.append(Blockchain(chain['name'], chain['id'], True))
         return result
 
+    def get_supported_checks(self) -> List[str]:
+        return ['height', 'height_bulk', 'ping']
+
+    def get_ping(self):
+        self.fetch('get', 'blockchains/bitcoin-testnet', timeout=2)
+
     def get_block_height(self, chain_id: str) -> BlockHeightResult:
         chain = self.fetch('get', 'blockchains/' + chain_id)
         return BlockHeightResult(chain[self.height_key])

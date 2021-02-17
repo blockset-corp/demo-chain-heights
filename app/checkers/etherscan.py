@@ -16,6 +16,12 @@ class EtherscanCheckRunner(CheckRunner, HttpBase):
             Blockchain(name='Ethereum Ropsten', slug='ethereum-ropsten', testnet=True)
         ]
 
+    def get_supported_checks(self) -> List[str]:
+        return ['height']
+
+    def get_ping(self):
+        raise NotImplementedError
+
     def get_block_height(self, chain_id: str) -> BlockHeightResult:
         if chain_id == 'ethereum-mainnet':
             host = 'api.etherscan.io'

@@ -13,6 +13,10 @@
         .avg-height-diff-container {
             height: 100px;
         }
+
+        #ping-graph-container {
+            height: 250px;
+        }
     </style>
 {% endblock %}
 
@@ -25,6 +29,7 @@
         {{ chain.data|json_script:chain.script_tag }}
     {% endfor %}
     {{ all_chain_ids|json_script:"all-chain-ids" }}
+    {{ ping_ticks|json_script:"ping-data" }}
     {{ height_avg_labels|json_script:"height-avg-labels" }}
     <script>
         Chart.defaults.LineWithLine = Chart.defaults.line;
@@ -56,8 +61,7 @@
             return JSON.parse(document.getElementById(id).textContent);
         }
 
-        $(function () {
-            // create avg height graphs
+        function createAvgHeightGraphs() {
             let chainIds = getJson('all-chain-ids');
             let heightLabels = getJson('height-avg-labels');
             for (let chainId of chainIds) {
@@ -115,15 +119,14 @@
                                 },
                                 gridLines: {display: false},
                             }],
-                            yAxes: [{
-
-                            }]
+                            yAxes: [{}]
                         }
                     }
                 });
             }
+        }
 
-            // create error history graph
+        function createErrorHistoryGraph() {
             let colors = ['f94144', '577590', 'f8961e', 'f9c74f', '90be6d', '43aa8b', 'f3722c'];
             let errorCounts = getJson('error-counts');
             let colorCounter = 0;
@@ -164,6 +167,80 @@
                     }
                 }
             });
+        }
+
+        function createPingGraph() {
+            let data = {
+                labels: [],
+                datasets: [{
+                    label: 'avg ms',
+                    data: [],
+                    yAxesID: 'A',
+                    borderWidth: 1,
+                    borderColor: '#53599A',
+                    backgroundColor: '#D2E0EE',
+                    pointRadius: 0,
+                    spanGaps: true
+                }, {
+                    label: 'errors',
+                    data: [],
+                    yAxesID: 'B',
+                    backgroundColor: '#FECAC3',
+                    borderColor: '#FC4D36',
+                    borderWidth: 1,
+                    pointRadius: 0,
+                    spanGaps: false,
+                }]
+            };
+            let pingData = getJson('ping-data');
+            for (let tick of pingData) {
+                data.labels.push(new Date(tick[4] * 1000));
+                data.datasets[0].data.push(tick[2]);
+                data.datasets[1].data.push(tick[3]);
+            }
+            new Chart($("#ping-graph-canvas"), {
+                type: 'line',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    legend: {
+                        display: false
+                    },
+                    tooltips: {
+                        mode: 'index',
+                        intersect: false,
+                        axis: 'x',
+                    },
+                    hover: {
+                        mode: 'nearest',
+                        intersect: true,
+                    },
+                    scales: {
+                        xAxes: [{
+                            ticks: {
+                                display: false,
+                            },
+                            gridLines: {display: false},
+                        }],
+                        yAxes: [{
+                            id: 'A',
+                            type: 'linear',
+                            position: 'left'
+                        }, {
+                            id: 'B',
+                            type: 'linear',
+                            position: 'right'
+                        }]
+                    }
+                }
+            })
+        }
+
+        $(function () {
+            createAvgHeightGraphs();
+            createPingGraph();
+            createErrorHistoryGraph();
         });
     </script>
 {% endblock %}
@@ -202,7 +279,6 @@
             <span style="color: #FC4D36">Error rate each hour.</span>
         </p>
 
-
         {% for chain in all_chains %}
 
             <h5 class="mt-3 mb-2">
@@ -219,6 +295,13 @@
 
         {% endfor %}
 
+        <h3 class="mt-4">Pings</h3>
+        <p>Ping statistics over the past 7 days</p>
+
+        <div id="ping-graph-container">
+            <canvas id="ping-graph-canvas"></canvas>
+        </div>
+
         <h3 class="mt-4">Errors</h3>
         <p>Check Errors over the past 7 days</p>
 
@@ -230,6 +313,7 @@
             <thead>
             <tr>
                 <th scope="col">Time</th>
+                <th scope="col">Check Type</th>
                 <th scope="col">Blockchain</th>
                 <th scope="col">Message</th>
             </tr>
@@ -238,8 +322,9 @@
             {% for error in errors_page %}
                 <tr>
                     <td><a href="{% url "error_detail" error_id=error.pk %}">{{ error.created|timesince }}</a></td>
+                    <td>{{ error.check_instance.get_type_display }}</td>
                     <td>{{ error.blockchain.slug }}</td>
-                    <td>{{ error.error_message|truncatechars:100 }}</td>
+                    <td>{{ error.error_message|truncatechars:85 }}</td>
                 </tr>
             {% endfor %}
             </tbody>

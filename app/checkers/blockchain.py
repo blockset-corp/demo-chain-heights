@@ -9,6 +9,12 @@ class BlockchainCheckRunner(CheckRunner, HttpBase):
             Blockchain(name='Bitcoin Mainnet', slug='bitcoin-mainnet', testnet=False)
         ]
 
+    def get_supported_checks(self) -> List[str]:
+        return ['height']
+
+    def get_ping(self):
+        raise NotImplementedError
+
     def get_block_height(self, chain_id: str) -> BlockHeightResult:
         if chain_id != 'bitcoin-mainnet':
             raise Exception(f'Unsupported blockchain={chain_id}')

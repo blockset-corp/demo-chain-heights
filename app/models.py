@@ -2,15 +2,17 @@ import re
 import datetime
 from collections import defaultdict
 from django.db import models
-from django.db.models import Q, F, Avg, Count
+from django.db.models import Q, F, Avg, Count, Max, Min
 from django.db.models.functions import Trunc
 from django.contrib.postgres.fields import ArrayField
 from django.utils import timezone
 from autoslug import AutoSlugField
 
 CHECK_TYPE_BLOCK_HEIGHT = 'bh'
+CHECK_TYPE_PING = 'p'
 CHECK_TYPES = (
     (CHECK_TYPE_BLOCK_HEIGHT, 'Block Height'),
+    (CHECK_TYPE_PING, 'Ping'),
 )
 
 RESULT_STATUS_OK = 'ok'
@@ -220,6 +222,60 @@ class ChainHeightResult(models.Model):
             return 'success'
 
 
+class PingResultQuerySet(models.QuerySet):
+    def get_minutely_stats(self, distance=datetime.timedelta(days=7)):
+        now = timezone.now()
+        then = now - distance
+        results = self.filter(
+            check_instance__started__gt=then,
+            check_instance__completed__isnull=False
+        ).annotate(
+            started_minute=Trunc('started', 'minute'),
+        ).values(
+            'started_minute'
+        ).annotate(
+            min_dur=Min('duration'),
+            max_dur=Max('duration'),
+            avg_dur=Avg('duration'),
+            error_count=Count('id', filter=Q(error_details__isnull=False))
+        )
+        tick_time_format = '%y-%m-%d %H:%M'
+        tick_buckets = {}
+        for result in results:
+            result['avg_dur'] = int(result['avg_dur'])
+            time_bucket = result['started_minute'].strftime(tick_time_format)
+            tick_buckets[time_bucket] = result
+        all_ticks = []
+        minutes = int(distance.total_seconds() / 60)
+        for i in range(minutes, -1, -1):
+            date = (now - datetime.timedelta(minutes=i)).replace(second=0, microsecond=0)
+            tick_date = date.strftime(tick_time_format)
+            tick = [0, 0, 0, 0, int(date.timestamp())]
+            tick_result = tick_buckets.get(tick_date, None)
+            if tick_result is not None:
+                tick[0] = tick_result['min_dur']
+                tick[1] = tick_result['max_dur']
+                tick[2] = tick_result['avg_dur']
+                tick[3] = tick_result['error_count']
+            all_ticks.append(tick)
+        print(len(all_ticks))
+        return all_ticks
+
+
+class PingResult(models.Model):
+    service = models.ForeignKey(Service, on_delete=models.CASCADE)
+    check_instance = models.ForeignKey(CheckInstance, on_delete=models.CASCADE, related_name='pings')
+    started = models.DateTimeField()
+    duration = models.IntegerField()
+    status = models.CharField(max_length=2, choices=RESULT_STATUSES)
+    error_details = models.ForeignKey('CheckError', null=True, on_delete=models.SET_NULL)
+
+    objects = PingResultQuerySet.as_manager()
+
+    def __str__(self):
+        return f'{self.service.slug} {self.get_status_display()}'
+
+
 ERROR_TAG_TIMEOUT = 'timeout'
 ERROR_TAG_CONNECTION = 'connection'
 ERROR_TAG_SSL = 'ssl'
@@ -292,7 +348,8 @@ class CheckErrorQuerySet(models.QuerySet):
 
 class CheckError(models.Model):
     check_instance = models.ForeignKey(CheckInstance, on_delete=models.CASCADE)
-    blockchain = models.ForeignKey(Blockchain, on_delete=models.CASCADE)
+    service = models.ForeignKey(Service, null=True, on_delete=models.CASCADE)
+    blockchain = models.ForeignKey(Blockchain, null=True, on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)
     method = models.CharField(max_length=4, default='')
     url = models.CharField(max_length=2048, default='')
@@ -311,12 +368,12 @@ class CheckError(models.Model):
         return self.error_message
 
     def blockchain_slug(self):
-        return self.blockchain.slug
+        return self.blockchain.slug if self.blockchain is not None else 'n/a'
 
     blockchain_slug.short_description = 'Blockchain'
 
     def service_slug(self):
-        return self.blockchain.service.slug
+        return self.blockchain.service.slug if self.service is None else self.service.slug
 
     service_slug.short_description = 'Service'
 

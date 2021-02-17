@@ -11,6 +11,12 @@ class DragonGlassCheckRunner(CheckRunner, HttpBase):
     def get_supported_chains(self) -> List[Blockchain]:
         return []
 
+    def get_supported_checks(self) -> List[str]:
+        return ['height']
+
+    def get_ping(self):
+        raise NotImplementedError
+
     def get_block_height(self, chain_id: str) -> BlockHeightResult:
         pass
 

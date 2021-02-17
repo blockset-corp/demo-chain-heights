@@ -2,7 +2,8 @@ from collections import defaultdict
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.core.paginator import Paginator
-from .models import Service, CheckInstance, ChainHeightResult, CheckError, CHECK_TYPE_BLOCK_HEIGHT
+from .models import Service, CheckInstance, ChainHeightResult, CheckError, CHECK_TYPE_BLOCK_HEIGHT, \
+    PingResult
 
 
 def index(request):
@@ -23,7 +24,8 @@ def service_detail(request, service_slug):
     context = {
         'service': service,
         'errors_page': errors_paginator.get_page(errors_page),
-        'error_counts': CheckError.objects.for_service(service).get_error_counts()
+        'error_counts': CheckError.objects.for_service(service).get_error_counts(),
+        'ping_ticks': PingResult.objects.filter(service=service).get_minutely_stats()
     }
     recent_checks = CheckInstance.objects.filter(
         type__exact=CHECK_TYPE_BLOCK_HEIGHT

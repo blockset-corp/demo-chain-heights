@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import Service, Blockchain, BlockchainMeta, CheckInstance, \
-    ChainHeightResult, CheckError
+    ChainHeightResult, CheckError, PingResult
 
 
 @admin.register(Service)
@@ -53,6 +53,24 @@ class ChainHeightResultAdmin(admin.ModelAdmin):
     def run_number(self, obj):
         return obj.check_instance_id
     run_number.short_description = 'Run #'
+
+
+@admin.register(PingResult)
+class PingResultAdmin(admin.ModelAdmin):
+    list_display = ('service', 'status', 'duration_ms')
+    ordering = ('-pk',)
+    readonly_fields = ('service', 'check_instance', 'error_details')
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('service')
+
+    def service_slug(self, obj):
+        return obj.service.slug
+    service_slug.short_description = 'Service'
+
+    def duration_ms(self, obj):
+        return f'{obj.duration} ms'
+    duration_ms.short_description = 'Duration MS'
 
 
 @admin.register(CheckError)
