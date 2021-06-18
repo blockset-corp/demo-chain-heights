@@ -113,10 +113,22 @@ class Blockchain(models.Model):
             self.save()
 
 
+class CheckInstanceQuerySet(models.QuerySet):
+    def delete_expired(self, distance=datetime.timedelta(days=120)):
+        now = timezone.now()
+        then = now - distance
+        return self.filter(
+            started__lt=then,
+            completed__isnull=False
+        ).delete()
+
+
 class CheckInstance(models.Model):
     type = models.CharField(choices=CHECK_TYPES, max_length=2, db_column='check_type')
     started = models.DateTimeField()
     completed = models.DateTimeField(null=True)
+
+    objects = CheckInstanceQuerySet.as_manager()
 
     class Meta:
         indexes = [

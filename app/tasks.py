@@ -313,6 +313,11 @@ def update_blockchain_height(service_slug, chain_id, check_id):
 
 
 @shared_task
+def prune_old_results():
+    return CheckInstance.objects.delete_expired()
+
+
+@shared_task
 def complete_check(check_id):
     check = CheckInstance.objects.get(pk=check_id)
     check.completed = timezone.now()
