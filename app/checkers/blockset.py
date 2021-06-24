@@ -1,6 +1,7 @@
 from typing import List
 from django.conf import settings
-from . import CheckRunner, BlockHeightResult, Blockchain, Block
+from . import CheckRunner, BlockHeightResult, Blockchain, Block, \
+    CHECK_BLOCK_HEIGHT, CHECK_BLOCK_HEIGHT_BULK, CHECK_BLOCK_VALIDATION, CHECK_PING
 from ._utils import HttpBase
 
 
@@ -9,6 +10,7 @@ class BlocksetCheckRunner(CheckRunner, HttpBase):
                  endpoint='https://api.blockset.com',
                  verify=True,
                  additional_headers=lambda: {}):
+        self.node = node
         self.token = settings.BLOCKSET_TOKEN
         self.height_key = 'block_height' if node else 'verified_height'
         self.endpoint = endpoint
@@ -27,7 +29,9 @@ class BlocksetCheckRunner(CheckRunner, HttpBase):
         return result
 
     def get_supported_checks(self) -> List[str]:
-        return ['height', 'height_bulk', 'ping']
+        if self.node:
+            return [CHECK_BLOCK_HEIGHT, CHECK_BLOCK_HEIGHT_BULK, CHECK_PING]
+        return [CHECK_BLOCK_HEIGHT, CHECK_BLOCK_HEIGHT_BULK, CHECK_BLOCK_VALIDATION, CHECK_PING]
 
     def get_ping(self):
         self.fetch('get', 'blockchains/bitcoin-testnet', timeout=2)
@@ -51,7 +55,7 @@ class BlocksetCheckRunner(CheckRunner, HttpBase):
 
     def get_block_at_height(self, chain_id: str, height: int) -> Block:
         block = self.fetch('get', f'blocks/{chain_id}:{height}')
-        return Block(height, block['hash'], block['transaction_ids'])
+        return Block(height, block.get('hash', ''), block.get('transaction_ids', []))
 
     def fetch(self, method, resource, **params):
         headers = {'authorization': 'Bearer ' + self.token}

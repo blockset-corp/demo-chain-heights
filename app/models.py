@@ -430,6 +430,10 @@ class BlockValidationInstance(models.Model):
     end_height = models.PositiveBigIntegerField()
     started = models.DateTimeField()
     completed = models.DateTimeField(null=True)
+    timed_out = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f'{self.blockchain} {self.start_height}-{self.end_height}'
 
 
 class BlockValidationResult(models.Model):
@@ -442,9 +446,6 @@ class BlockValidationResult(models.Model):
     duration = models.PositiveBigIntegerField(help_text='Duration in milliseconds')
     status = models.CharField(max_length=2, choices=RESULT_STATUSES)
     height = models.PositiveBigIntegerField(help_text='Height of this check')
-    error = models.TextField(default='')
-    error_details = models.ForeignKey('CheckError', null=True,
-                                      on_delete=models.SET_NULL)
     block_hash = models.CharField(
         max_length=128,
         help_text='The block hash as reported by the service'
@@ -462,8 +463,8 @@ class BlockValidationResult(models.Model):
                   'all alike. There may also be no canonical blocks if none agree'
     )
     canonical_result = models.ForeignKey(
-        to='BlockCheckResult', on_delete=models.CASCADE, null=True,
-        help_text='The canonical block check result for this block height (may be self)'
+        to='BlockValidationResult', on_delete=models.CASCADE, null=True,
+        help_text='The canonical block check result for this block height (null if this block is canonical)'
     )
     hash_mismatch = models.BooleanField(
         default=False,
@@ -472,9 +473,15 @@ class BlockValidationResult(models.Model):
     )
     missing_transaction_ids = ArrayField(
         base_field=models.CharField(max_length=128, blank=True),
+        default=list,
         help_text='Transaction IDs missing when compared to a canonical block '
                   'check result'
     )
+
+    class Meta:
+        unique_together = [
+            ('validation_instance', 'height')
+        ]
 
     def __str__(self):
         return f'{self.blockchain} {len(self.transaction_ids)} tx @ {self.height}'

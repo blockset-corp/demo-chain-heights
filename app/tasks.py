@@ -1,16 +1,18 @@
 import time
 import traceback
+from datetime import timedelta
 from collections import namedtuple
 from django.utils import timezone
 from celery import shared_task, chord
 from celery.utils.log import get_task_logger
 from requests import exceptions as requests_exceptions
 
-from .checkers import get_all_check_runners
+from .checkers import get_all_check_runners, CHECK_BLOCK_VALIDATION
 from .models import Service, Blockchain, CheckInstance, ChainHeightResult, CheckError, \
     RESULT_STATUS_OK, RESULT_STATUS_WARN, RESULT_STATUS_ERR, CHECK_TYPE_BLOCK_HEIGHT, \
     ERROR_TAG_TIMEOUT, ERROR_TAG_SYSTEM, ERROR_TAG_SSL, ERROR_TAG_ENCODING, ERROR_TAG_HTTP, \
-    ERROR_TAG_UNKNOWN, ERROR_TAG_CONNECTION, CHECK_TYPE_PING, PingResult
+    ERROR_TAG_UNKNOWN, ERROR_TAG_CONNECTION, CHECK_TYPE_PING, PingResult, \
+    BlockValidationInstance, BlockValidationResult
 
 logger = get_task_logger('app.tasks')
 
@@ -71,6 +73,160 @@ def update_all_pings():
         if runner is not None and 'ping' in runner.get_supported_checks():
             jobs.append(do_ping.s(svc.slug, check.pk))
     chord(jobs, complete_ping_check.si(check.pk)).apply_async()
+
+
+@shared_task
+def validate_all_blockchains():
+    fullnode_service = Service.objects.get(slug='fullnode')
+    supported_chains = Blockchain.objects.filter(service=fullnode_service, ignore=False).exclude(meta__isnull=True)
+    for chain in supported_chains:
+        update_canonical_chain.apply_async(args=(chain.pk,))
+
+
+@shared_task
+def update_canonical_chain(blockchain_id):
+    chain = Blockchain.objects.get(pk=blockchain_id)
+    # determine most recent result
+    most_recent = BlockValidationInstance.objects.filter(
+        blockchain=chain, timed_out=False
+    ).order_by('-end_height').first()
+
+    runner = get_check_runners().get('fullnode')
+    current_height = runner.get_block_height(chain.slug)
+    finality_depth = chain.meta.testnet_finality_depth if chain.is_testnet else chain.meta.mainnet_finality_depth
+    final_block_height = current_height.height - finality_depth
+
+    start_height, end_height = None, final_block_height
+
+    if most_recent is None:
+        # no block validations for this chain yet, kick things off by validating the most recent 100 blocks
+        print(f'no block validations for {chain} yet')
+        start_height = final_block_height - 10
+    elif most_recent.completed and most_recent.end_height < final_block_height:
+        print(f'most recent block validation for {chain} complete, will initiate checking '
+              f'{most_recent.end_height} - {final_block_height}')
+        # if the most recent BVI is complete, and new blocks are ready to be validated, start a new validation round
+        start_height = most_recent.end_height
+    elif not most_recent.completed:
+        # if the most recent BVI has not been completed, ensure it is not timed out
+        timeout = timezone.now() - timedelta(hours=1)
+        if most_recent.started <= timeout:
+            print(f'timing out {most_recent}')
+            most_recent.completed = timezone.now()
+            most_recent.timed_out = True
+            most_recent.save()
+
+    if start_height is not None:
+        instance = BlockValidationInstance.objects.create(
+            blockchain=chain,
+            start_height=start_height,
+            end_height=end_height,
+            started=timezone.now()
+        )
+        jobs = []
+        for i in range(instance.start_height, instance.end_height):
+            jobs.append(fetch_canonical_block.s(instance.pk, i))
+        chord(jobs, perform_all_block_validations.si(instance.pk)).apply_async()
+
+
+@shared_task(bind=True)
+def fetch_canonical_block(task, validation_instance_id, height):
+    instance = BlockValidationInstance.objects.get(pk=validation_instance_id)
+    runner = get_check_runners().get('fullnode')
+    resp = run_http_method(runner.get_block_at_height, instance.blockchain.slug, height)
+    if resp.error:
+        # can not absorb an error for canonical chain fetch failure, just retry
+        print(f'canonical fetch failed at height {height} for instance {instance} failed with {resp.error}')
+        raise task.retry(max_retries=13)
+    BlockValidationResult.objects.create(
+        blockchain=instance.blockchain,
+        validation_instance=instance,
+        service=instance.blockchain.service,
+        started=resp.started_time,
+        duration=resp.duration,
+        status=resp.status,
+        height=resp.result.height,
+        block_hash=resp.result.hash,
+        transaction_ids=resp.result.txids,
+        is_canonical=True,
+        missing_transaction_ids=[]
+    )
+
+
+@shared_task
+def perform_all_block_validations(validation_instance_id):
+    """
+    Finalize the BVI for the canonical block, and kick off validations for any services that support it
+    """
+    instance = BlockValidationInstance.objects.get(pk=validation_instance_id)
+    instance.completed = timezone.now()
+    instance.save()
+
+    services = Service.objects.all()
+    for svc in services:
+        runner = get_check_runners().get(svc.slug, None)
+        # ensure the runner supports the check and chain we are looking at
+        if runner is None or CHECK_BLOCK_VALIDATION not in runner.get_supported_checks():
+            continue
+        supported_chain_slugs = {c.slug for c in runner.get_supported_chains()}
+        if instance.blockchain.slug not in supported_chain_slugs:
+            continue
+        chain = Blockchain.objects.get(service=svc, slug=instance.blockchain.slug)
+        # ensure there isn't already a validation instance running
+        existing_service_instance = BlockValidationInstance.objects.filter(
+            blockchain=chain, timed_out=False, start_height=instance.start_height, end_height=instance.end_height
+        ).first()
+        if existing_service_instance:
+            continue
+        # kick off a validation for this service/chain/block range
+        service_instance = BlockValidationInstance.objects.create(
+            blockchain=chain,
+            start_height=instance.start_height,
+            end_height=instance.end_height,
+            started=timezone.now()
+        )
+        jobs = []
+        for i in range(service_instance.start_height, service_instance.end_height):
+            canonical_block_result = BlockValidationResult.objects.get(validation_instance=instance, height=i)
+            jobs.append(fetch_service_block.s(service_instance.pk, canonical_block_result.pk, i))
+        chord(jobs, finalize_service_block_validation.si(service_instance.pk)).apply_async()
+
+
+@shared_task(bind=True)
+def fetch_service_block(task, validation_instance_id, canonical_block_id, height):
+    instance = BlockValidationInstance.objects.get(pk=validation_instance_id)
+    runner = get_check_runners().get(instance.blockchain.service.slug)
+    resp = run_http_method(runner.get_block_at_height, instance.blockchain.slug, height)
+    if resp.error:
+        print(f'service fetch failed at height {height} for instance {instance} failed with {resp.error}')
+        raise task.retry(max_retries=13)
+    canonical_result = BlockValidationResult.objects.get(pk=canonical_block_id)
+    kwargs = {
+        'blockchain': instance.blockchain,
+        'validation_instance': instance,
+        'service': instance.blockchain.service,
+        'started': resp.started_time,
+        'duration': resp.duration,
+        'status': resp.status,
+        'height': resp.result.height,
+        'block_hash': resp.result.hash,
+        'transaction_ids': resp.result.txids,
+        'canonical_result': canonical_result,
+        'missing_transaction_ids': []
+    }
+    if resp.result.hash != canonical_result.block_hash:
+        kwargs['hash_mismatch'] = True
+    for txid in canonical_result.transaction_ids:
+        if txid not in resp.result.txids:
+            kwargs['missing_transaction_ids'].append(txid)
+    BlockValidationResult.objects.create(**kwargs)
+
+
+@shared_task
+def finalize_service_block_validation(validation_instance_id):
+    instance = BlockValidationInstance.objects.get(pk=validation_instance_id)
+    instance.completed = timezone.now()
+    instance.save()
 
 
 @shared_task

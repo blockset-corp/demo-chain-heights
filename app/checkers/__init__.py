@@ -66,6 +66,7 @@ def get_all_check_runners() -> Mapping[str, CheckRunner]:
     from .amberdata import AmberdataCheckRunner
     from .alchemy import AlchemyCheckRunner
     from .xrpl import XrplCheckRunner
+    from .fullnode import FullNodeRunner
 
     return {
         'blockset': BlocksetCheckRunner(),
@@ -80,4 +81,5 @@ def get_all_check_runners() -> Mapping[str, CheckRunner]:
         'amberdata': AmberdataCheckRunner(),
         'alchemy': AlchemyCheckRunner(),
         'xrpl': XrplCheckRunner(),
+        'fullnode': FullNodeRunner()
     }

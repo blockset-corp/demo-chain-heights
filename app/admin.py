@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import Service, Blockchain, BlockchainMeta, CheckInstance, \
-    ChainHeightResult, CheckError, PingResult
+    ChainHeightResult, CheckError, PingResult, BlockValidationInstance, BlockValidationResult
 
 
 @admin.register(Service)
@@ -81,3 +81,47 @@ class CheckErrorAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('blockchain', 'blockchain__service', 'check_instance')
+
+
+@admin.register(BlockValidationInstance)
+class BlockValidationInstanceAdmin(admin.ModelAdmin):
+    list_display = ('name', 'started', 'completed', 'timed_out')
+    ordering = ('-pk',)
+    list_filter = ('blockchain',)
+    readonly_fields = ('blockchain',)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('blockchain', 'blockchain__service')
+
+    def name(self, obj):
+        return str(obj)
+    name.short_description = 'Instance'
+
+
+@admin.register(BlockValidationResult)
+class BlockValidationResultAdmin(admin.ModelAdmin):
+    list_display = ('service_slug', 'blockchain_slug', 'run_number', 'height', 'n_tx')
+    list_filter = ('blockchain',)
+    ordering = ('-pk', '-height')
+    readonly_fields = ('canonical_result', 'validation_instance', 'blockchain', 'service',)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'blockchain', 'blockchain__service', 'validation_instance', 'service', 'canonical_result'
+        )
+
+    def run_number(self, obj):
+        return obj.validation_instance_id
+    run_number.short_description = 'Run #'
+
+    def service_slug(self, obj):
+        return obj.service.slug
+    service_slug.short_description = 'Service'
+
+    def blockchain_slug(self, obj):
+        return obj.blockchain.slug
+    blockchain_slug.short_description = 'Blockchain'
+
+    def n_tx(self, obj):
+        return len(obj.transaction_ids)
+    n_tx.short_description = '# Tx'
