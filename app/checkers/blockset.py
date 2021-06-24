@@ -1,6 +1,6 @@
 from typing import List
 from django.conf import settings
-from . import CheckRunner, BlockHeightResult, Blockchain
+from . import CheckRunner, BlockHeightResult, Blockchain, Block
 from ._utils import HttpBase
 
 
@@ -48,6 +48,10 @@ class BlocksetCheckRunner(CheckRunner, HttpBase):
             else:
                 result.append(BlockHeightResult(height=all_chains[chain_id][self.height_key]))
         return result
+
+    def get_block_at_height(self, chain_id: str, height: int) -> Block:
+        block = self.fetch('get', f'blocks/{chain_id}:{height}')
+        return Block(height, block['hash'], block['transaction_ids'])
 
     def fetch(self, method, resource, **params):
         headers = {'authorization': 'Bearer ' + self.token}

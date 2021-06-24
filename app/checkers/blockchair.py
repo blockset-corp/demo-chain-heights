@@ -1,6 +1,6 @@
 from typing import List
 from django.conf import settings
-from . import CheckRunner, Blockchain, BlockHeightResult
+from . import CheckRunner, Blockchain, BlockHeightResult, Block
 from ._utils import HttpBase
 
 
@@ -67,5 +67,9 @@ class BlockChairCheckRunner(CheckRunner, HttpBase):
                 key = 'best_block_height'
                 if chain_id in ('ripple-mainnet', 'stellar-mainnet'):
                     key = 'best_ledger_height'
-                results.append(BlockHeightResult(height=data['data'][bc_chain_id]['data'][key]))
+                results.append(
+                    BlockHeightResult(height=data['data'][bc_chain_id]['data'][key]))
         return results
+
+    def get_block_at_height(self, chain_id: str, height: int) -> Block:
+        raise NotImplementedError

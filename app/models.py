@@ -10,9 +10,11 @@ from autoslug import AutoSlugField
 
 CHECK_TYPE_BLOCK_HEIGHT = 'bh'
 CHECK_TYPE_PING = 'p'
+CHECK_TYPE_BLOCK_VALIDATION = 'bv'
 CHECK_TYPES = (
     (CHECK_TYPE_BLOCK_HEIGHT, 'Block Height'),
     (CHECK_TYPE_PING, 'Ping'),
+    (CHECK_TYPE_BLOCK_VALIDATION, 'Block Validation')
 )
 
 RESULT_STATUS_OK = 'ok'
@@ -38,17 +40,38 @@ class Service(models.Model):
 
 
 class BlockchainMeta(models.Model):
-    display_name = models.CharField(max_length=60, help_text='Well-known proper noun for this blockchain')
-    chain_slug = models.SlugField(help_text='Common slug for this blockchain not including network prefix')
+    display_name = models.CharField(
+        max_length=60,
+        help_text='Well-known proper noun for this blockchain'
+    )
+    chain_slug = models.SlugField(
+        help_text='Common slug for this blockchain not including network prefix'
+    )
     mainnet_slug = models.CharField(max_length=50, default='mainnet')
-    testnet_slugs = ArrayField(models.CharField(max_length=25, blank=True),
-                               help_text='Testnet slug (or slugs) such as "testnet" or "ropsten"')
-    height_tolerance_success = models.IntegerField(default=0,
-                                                   help_text='Number of blocks behind that is considered OK')
-    height_tolerance_warning = models.IntegerField(default=-1,
-                                                   help_text='Number of blocks behind that should emit a warning')
-    height_tolerance_error = models.IntegerField(default=-2,
-                                                 help_text='Number of blocks behind that should sound the alarms')
+    testnet_slugs = ArrayField(
+        base_field=models.CharField(max_length=25, blank=True),
+        help_text='Testnet slug (or slugs) such as "testnet" or "ropsten"'
+    )
+    height_tolerance_success = models.IntegerField(
+        default=0,
+        help_text='Number of blocks behind that is considered OK'
+    )
+    height_tolerance_warning = models.IntegerField(
+        default=-1,
+        help_text='Number of blocks behind that should emit a warning'
+    )
+    height_tolerance_error = models.IntegerField(
+        default=-2,
+        help_text='Number of blocks behind that should sound the alarms'
+    )
+    mainnet_finality_depth = models.PositiveIntegerField(
+        default=6,
+        help_text='Number of blocks behind which blocks will never change on mainnets'
+    )
+    testnet_finality_depth = models.PositiveIntegerField(
+        default=6,
+        help_text='Number of blocks behind which blocks will never change on testnets'
+    )
 
     def __str__(self):
         return self.display_name
@@ -143,8 +166,10 @@ class ChainHeightResultQuerySet(models.QuerySet):
             'blockchain__slug', 'started_hour'
         ).annotate(
             diff_avg=Avg('diff', filter=Q(error_details__isnull=True) & Q(error='')),
-            error_count=Count('id', filter=Q(error_details__isnull=False) | ~Q(error='')),
-            success_count=Count('id', filter=Q(error_details__isnull=True) & Q(error=''))
+            error_count=Count('id',
+                              filter=Q(error_details__isnull=False) | ~Q(error='')),
+            success_count=Count('id',
+                                filter=Q(error_details__isnull=True) & Q(error=''))
         )
         tick_time_format = '%y-%m-%d %H:00'
         during_buckets = defaultdict(dict)
@@ -161,7 +186,8 @@ class ChainHeightResultQuerySet(models.QuerySet):
         known_chains.sort()
         empty_value = {'diff_avg': 0.0, 'error_count': 0, 'success_count': 0}
         for i in range(hours, -1, -1):
-            date = (now - datetime.timedelta(hours=i)).replace(minute=0, second=0, microsecond=0)
+            date = (now - datetime.timedelta(hours=i)).replace(minute=0, second=0,
+                                                               microsecond=0)
             tick_date = date.strftime(tick_time_format)
             for chain_id in known_chains:
                 value = dict(empty_value)
@@ -173,14 +199,17 @@ class ChainHeightResultQuerySet(models.QuerySet):
 
 class ChainHeightResult(models.Model):
     blockchain = models.ForeignKey(Blockchain, on_delete=models.CASCADE)
-    check_instance = models.ForeignKey(CheckInstance, on_delete=models.CASCADE, related_name='results')
+    check_instance = models.ForeignKey(CheckInstance, on_delete=models.CASCADE,
+                                       related_name='results')
     started = models.DateTimeField()
     duration = models.IntegerField(help_text='Duration in milliseconds')
     status = models.CharField(max_length=2, choices=RESULT_STATUSES)
     height = models.IntegerField(default=0)
     error = models.TextField(default='')
-    error_details = models.ForeignKey('CheckError', null=True, on_delete=models.SET_NULL)
-    best_result = models.ForeignKey('ChainHeightResult', on_delete=models.CASCADE, null=True)
+    error_details = models.ForeignKey('CheckError', null=True,
+                                      on_delete=models.SET_NULL)
+    best_result = models.ForeignKey('ChainHeightResult', on_delete=models.CASCADE,
+                                    null=True)
 
     objects = ChainHeightResultQuerySet.as_manager()
 
@@ -248,7 +277,8 @@ class PingResultQuerySet(models.QuerySet):
         all_ticks = []
         minutes = int(distance.total_seconds() / 60)
         for i in range(minutes, -1, -1):
-            date = (now - datetime.timedelta(minutes=i)).replace(second=0, microsecond=0)
+            date = (now - datetime.timedelta(minutes=i)).replace(second=0,
+                                                                 microsecond=0)
             tick_date = date.strftime(tick_time_format)
             tick = [0, 0, 0, 0, int(date.timestamp())]
             tick_result = tick_buckets.get(tick_date, None)
@@ -263,11 +293,13 @@ class PingResultQuerySet(models.QuerySet):
 
 class PingResult(models.Model):
     service = models.ForeignKey(Service, on_delete=models.CASCADE)
-    check_instance = models.ForeignKey(CheckInstance, on_delete=models.CASCADE, related_name='pings')
+    check_instance = models.ForeignKey(CheckInstance, on_delete=models.CASCADE,
+                                       related_name='pings')
     started = models.DateTimeField()
     duration = models.IntegerField()
     status = models.CharField(max_length=2, choices=RESULT_STATUSES)
-    error_details = models.ForeignKey('CheckError', null=True, on_delete=models.SET_NULL)
+    error_details = models.ForeignKey('CheckError', null=True,
+                                      on_delete=models.SET_NULL)
 
     objects = PingResultQuerySet.as_manager()
 
@@ -332,11 +364,13 @@ class CheckErrorQuerySet(models.QuerySet):
         hour_buckets = defaultdict(dict)
         for agg in counts:
             seen_tags.add(agg['tag'])
-            hour_buckets[agg['tag']][agg['started_hour'].strftime(tick_time_format)] = agg['errors']
+            hour_buckets[agg['tag']][agg['started_hour'].strftime(tick_time_format)] = \
+                agg['errors']
         hours = int(distance.total_seconds() / 60 / 60)
         ticks = {'labels': [], 'data': defaultdict(list)}
         for i in range(hours, -1, -1):
-            date = (now - datetime.timedelta(hours=i)).replace(minute=0, second=0, microsecond=0)
+            date = (now - datetime.timedelta(hours=i)).replace(minute=0, second=0,
+                                                               microsecond=0)
             tick_date = date.strftime(tick_time_format)
             ticks['labels'].append(tick_date)
             for tag in seen_tags:
@@ -388,3 +422,59 @@ class CheckError(models.Model):
 
     def response_headers_cleaned(self):
         return _clean_headers(self.request_headers)
+
+
+class BlockValidationInstance(models.Model):
+    blockchain = models.ForeignKey(Blockchain, on_delete=models.CASCADE)
+    start_height = models.PositiveBigIntegerField()
+    end_height = models.PositiveBigIntegerField()
+    started = models.DateTimeField()
+    completed = models.DateTimeField(null=True)
+
+
+class BlockValidationResult(models.Model):
+    blockchain = models.ForeignKey(Blockchain, on_delete=models.CASCADE)
+    validation_instance = models.ForeignKey(
+        to=BlockValidationInstance, on_delete=models.CASCADE
+    )
+    service = models.ForeignKey(Service, on_delete=models.CASCADE)
+    started = models.DateTimeField()
+    duration = models.PositiveBigIntegerField(help_text='Duration in milliseconds')
+    status = models.CharField(max_length=2, choices=RESULT_STATUSES)
+    height = models.PositiveBigIntegerField(help_text='Height of this check')
+    error = models.TextField(default='')
+    error_details = models.ForeignKey('CheckError', null=True,
+                                      on_delete=models.SET_NULL)
+    block_hash = models.CharField(
+        max_length=128,
+        help_text='The block hash as reported by the service'
+    )
+    transaction_ids = ArrayField(
+        base_field=models.CharField(max_length=128, blank=True),
+        help_text='The transaction IDs as reported by the service'
+    )
+    is_canonical = models.BooleanField(
+        default=False,
+        help_text='Whether this block represents a complete block that other '
+                  'results may be compared against. The canonical block result is '
+                  'typically the one with the highest number of transactions. There '
+                  'can be multiple canonical blocks for the same height if they are '
+                  'all alike. There may also be no canonical blocks if none agree'
+    )
+    canonical_result = models.ForeignKey(
+        to='BlockCheckResult', on_delete=models.CASCADE, null=True,
+        help_text='The canonical block check result for this block height (may be self)'
+    )
+    hash_mismatch = models.BooleanField(
+        default=False,
+        help_text='Whether the block_hash is incorrect when compared to a '
+                  'canonical block check result'
+    )
+    missing_transaction_ids = ArrayField(
+        base_field=models.CharField(max_length=128, blank=True),
+        help_text='Transaction IDs missing when compared to a canonical block '
+                  'check result'
+    )
+
+    def __str__(self):
+        return f'{self.blockchain} {len(self.transaction_ids)} tx @ {self.height}'

@@ -3,6 +3,12 @@ from dataclasses import dataclass
 from typing import List, Mapping
 
 
+CHECK_BLOCK_HEIGHT = 'height'
+CHECK_BLOCK_HEIGHT_BULK = 'height_bulk'
+CHECK_PING = 'ping'
+CHECK_BLOCK_VALIDATION = 'block_validation'
+
+
 @dataclass
 class BlockHeightResult:
     height: int
@@ -13,6 +19,13 @@ class Blockchain:
     name: str
     slug: str
     testnet: bool
+
+
+@dataclass
+class Block:
+    height: int
+    hash: str
+    txids: List[str]
 
 
 class CheckRunner(ABC):
@@ -33,6 +46,10 @@ class CheckRunner(ABC):
         pass
 
     @abstractmethod
+    def get_block_at_height(self, chain_id: str, height: int) -> Block:
+        pass
+
+    @abstractmethod
     def get_ping(self):
         pass
 
@@ -49,16 +66,10 @@ def get_all_check_runners() -> Mapping[str, CheckRunner]:
     from .amberdata import AmberdataCheckRunner
     from .alchemy import AlchemyCheckRunner
     from .xrpl import XrplCheckRunner
-    # from django.conf import settings
 
     return {
         'blockset': BlocksetCheckRunner(),
         'blocksetnode': BlocksetCheckRunner(node=True),
-        # 'blockset_do': BlocksetCheckRunner(
-        #     endpoint=f'https://{settings.BLOCKSET_DO_IP}',
-        #     verify=False,
-        #     additional_headers=lambda: {'host': 'api.blockset.com'}
-        # ),
         'blockchain': BlockchainCheckRunner(),
         'etherscan': EtherscanCheckRunner(),
         'blockcypher': BlockCypherCheckRunner(),

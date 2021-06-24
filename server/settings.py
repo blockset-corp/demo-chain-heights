@@ -153,8 +153,7 @@ INFURA_PROJECT_ID = os.environ.get('INFURA_PROJECT_ID', '').strip()
 ALCHEMY_MAINNET_KEY = os.environ.get('ALCHEMY_MAINNET_KEY', '').strip()
 ALCHEMY_ROPSTEN_KEY = os.environ.get('ALCHEMY_ROPSTEN_KEY', '').strip()
 AMBERDATA_TOKEN = os.environ.get('AMBERDATA_TOKEN', '').strip()
-
-BLOCKSET_DO_IP = os.environ.get('BLOCKSET_DO_IP', '').strip()
+GETBLOCK_API_KEY = os.environ.get('GETBLOCK_API_KEY', '').strip()
 
 sentry_sdk.init(
     dsn=os.environ.get('SENTRY_DSN', ''),

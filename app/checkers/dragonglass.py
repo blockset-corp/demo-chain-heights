@@ -1,6 +1,6 @@
 from typing import List
 
-from . import CheckRunner, Blockchain, BlockHeightResult
+from . import CheckRunner, Blockchain, BlockHeightResult, Block
 from ._utils import HttpBase
 
 
@@ -21,4 +21,7 @@ class DragonGlassCheckRunner(CheckRunner, HttpBase):
         pass
 
     def get_all_block_heights(self, chain_ids: List[str]) -> List[BlockHeightResult]:
+        raise NotImplementedError
+
+    def get_block_at_height(self, chain_id: str, height: int) -> Block:
         raise NotImplementedError
