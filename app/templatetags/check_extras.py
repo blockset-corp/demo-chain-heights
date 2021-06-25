@@ -2,6 +2,7 @@ from django import template
 
 register = template.Library()
 
+
 @register.simple_tag
 def get_result(results, chain_id, service_id):
     key = service_id + chain_id
@@ -18,6 +19,7 @@ def get_height(heights, chain_id):
 def get_chain_meta(metas, chain_id):
     chain_slug, _ = chain_id.split('-')
     return metas[chain_slug]
+
 
 @register.simple_tag
 def is_testnet(meta, chain_id):

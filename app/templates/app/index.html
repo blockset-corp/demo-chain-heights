@@ -39,10 +39,34 @@
     </script>
 {% endblock %}
 
+{% block css %}
+    {{ block.super }}
+    <style>
+        .validtable {
+        }
+        .validtable .chain {
+            display: flex;
+            flex-direction: row;
+        }
+        .validtable .chain .name {
+            width: 200px;
+            flex-grow: 0;
+        }
+        .validtable .chain .height {
+            flex-grow: 1;
+        }
+    </style>
+{% endblock %}
+
 {% block content %}
     <div class="container mt-4">
         <h3>Block Height Diff</h3>
         <p>Distance from the best imported block height by all tracked services. Updated every 30 seconds.</p>
         {% include "app/difftable.html" %}
+    </div>
+    <div class="container mt-4">
+        <h3>Block Validation</h3>
+        <p>Verifies final blocks are fully synced from the node. Updated every 60 seconds.</p>
+        {% include "app/validtable.html" %}
     </div>
 {% endblock %}

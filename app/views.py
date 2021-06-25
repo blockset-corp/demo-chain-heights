@@ -1,13 +1,16 @@
 from collections import defaultdict
+from django.db.models import Count, Prefetch, Max, OuterRef, F, Subquery
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.core.paginator import Paginator
-from .models import Service, CheckInstance, ChainHeightResult, CheckError, CHECK_TYPE_BLOCK_HEIGHT, \
-    PingResult
+from .models import Service, CheckInstance, ChainHeightResult, CheckError, Blockchain, \
+    CHECK_TYPE_BLOCK_HEIGHT, PingResult, BlockValidationInstance, BlockValidationResult
 
 
 def index(request):
-    context = get_difftable_context(request)
+    context = {}
+    context.update(get_difftable_context(request))
+    context.update(get_validtable_context(request))
     return render(request, 'app/index.html', context)
 
 
@@ -16,9 +19,15 @@ def difftable_partial(request):
     return render(request, 'app/difftable.html', context)
 
 
+def validtable_partial(request):
+    context = get_validtable_context(request)
+    return render(request, 'app/validtable.html', context)
+
+
 def service_detail(request, service_slug):
     service = get_object_or_404(Service, slug=service_slug)
-    errors = CheckError.objects.for_service(service).select_related('blockchain').order_by('-pk')
+    errors = CheckError.objects.for_service(service).select_related(
+        'blockchain').order_by('-pk')
     errors_paginator = Paginator(errors, 10)
     errors_page = request.GET.get('error_page', None)
     context = {
@@ -39,7 +48,8 @@ def service_detail(request, service_slug):
         ).common_related()
         for height_result in latest_check_results:
             chain_info[height_result.blockchain.slug]['latest_height'] = height_result
-            chain_info[height_result.blockchain.slug]['script_tag'] = f'{height_result.blockchain.slug}-data'
+            chain_info[height_result.blockchain.slug][
+                'script_tag'] = f'{height_result.blockchain.slug}-data'
         chain_ids = list(chain_info.keys())
         chain_ids.sort()
         context['all_chains'] = [chain_info[k] for k in chain_ids]
@@ -104,7 +114,8 @@ def get_difftable_context(request):
         chain_set = set()
         service_set = set()
         for result in height_results:
-            context['chain_metas'][result.blockchain.meta.chain_slug] = result.blockchain.meta
+            context['chain_metas'][
+                result.blockchain.meta.chain_slug] = result.blockchain.meta
             if result.difference_from_best() == 0:
                 context['chain_heights'][result.blockchain.slug] = result.height
             all_heights[result.blockchain.slug].append(result.height)
@@ -120,6 +131,31 @@ def get_difftable_context(request):
         context['chains'].sort()
         context['services'] = list(service_set)
         context['services'].sort()
+    return context
+
+
+def get_validtable_context(request):
+    context = {}
+    height_count = 100
+    chains = Blockchain.objects.annotate(
+        results_count=Count('validation_results')
+    ).filter(
+        results_count__gt=0, service__private=False
+    ).select_related(
+        'service', 'meta'
+    )
+    services = defaultdict(dict)
+    for chain in chains:
+        service = services[chain.service.slug]
+        service.setdefault('service', chain.service)
+        service.setdefault('chains', [])
+        service['chains'].append({
+            'chain': chain,
+            'heights': list(chain.validation_results.filter().order_by('height')[:60])
+        })
+    for svc_ctx in services.values():
+        svc_ctx['chains'].sort(key=lambda c: c['chain'].slug)
+    context['block_validations'] = sorted(services.items())
     return context
 
 

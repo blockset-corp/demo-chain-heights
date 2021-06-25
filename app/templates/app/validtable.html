@@ -1,0 +1,26 @@
+{% load check_extras %}
+
+<div id="validtable" class="validtable">
+    {% for k, service in block_validations %}
+        <h5>{{ service.service }}</h5>
+        {% for chain in service.chains %}
+            <div class="chain">
+                <div class="name">
+                    {{ chain.chain.meta.display_name }}
+                    {% if chain.chain.is_testnet %}
+                        <span class="badge badge-pill badge-secondary">{{ chain.chain.slug|network_name }}</span>
+                    {% endif %}
+                </div>
+                {% for height in chain.heights %}
+                    <div
+                            class="height ms-overlay border bg-{{ height.block_status }}"
+                            data-toggle="tooltip"
+                            data-placement="bottom"
+                            data-html="true"
+                            title="Block #{{ height.height }} - {{ height.transaction_ids|length }} tx{% if height.missing_transaction_ids %} <br /> ({{ height.missing_transaction_ids|length }} missing){% endif %}">
+                    </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    {% endfor %}
+</div>

@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import Service, Blockchain, BlockchainMeta, CheckInstance, \
-    ChainHeightResult, CheckError, PingResult, BlockValidationInstance, BlockValidationResult
+    ChainHeightResult, CheckError, PingResult, BlockValidationInstance, \
+    BlockValidationResult
 
 
 @admin.register(Service)
@@ -10,7 +11,7 @@ class ServiceAdmin(admin.ModelAdmin):
 
 @admin.register(BlockchainMeta)
 class BlockchainMeta(admin.ModelAdmin):
-    list_display = ('display_name', 'chain_slug')
+    list_display = ('chain_slug', 'display_name')
 
 
 @admin.register(Blockchain)
@@ -46,8 +47,8 @@ class ChainHeightResultAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related(
-            'blockchain', 'blockchain__service', 'blockchain__meta', 'best_result__blockchain',
-            'best_result__blockchain__service'
+            'blockchain', 'blockchain__service', 'blockchain__meta',
+            'best_result__blockchain', 'best_result__blockchain__service'
         )
 
     def run_number(self, obj):
@@ -75,23 +76,28 @@ class PingResultAdmin(admin.ModelAdmin):
 
 @admin.register(CheckError)
 class CheckErrorAdmin(admin.ModelAdmin):
-    list_display = ('created', 'blockchain_slug', 'service_slug', 'error_message_truncated')
+    list_display = (
+        'created', 'blockchain_slug', 'service_slug', 'error_message_truncated'
+    )
     ordering = ('-pk',)
     readonly_fields = ('check_instance', 'blockchain')
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('blockchain', 'blockchain__service', 'check_instance')
+        return super().get_queryset(request).select_related(
+            'blockchain', 'blockchain__service', 'check_instance'
+        )
 
 
 @admin.register(BlockValidationInstance)
 class BlockValidationInstanceAdmin(admin.ModelAdmin):
     list_display = ('name', 'started', 'completed', 'timed_out')
     ordering = ('-pk',)
-    list_filter = ('blockchain',)
     readonly_fields = ('blockchain',)
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('blockchain', 'blockchain__service')
+        return super().get_queryset(request).select_related(
+            'blockchain', 'blockchain__service'
+        )
 
     def name(self, obj):
         return str(obj)
@@ -101,13 +107,15 @@ class BlockValidationInstanceAdmin(admin.ModelAdmin):
 @admin.register(BlockValidationResult)
 class BlockValidationResultAdmin(admin.ModelAdmin):
     list_display = ('service_slug', 'blockchain_slug', 'run_number', 'height', 'n_tx')
-    list_filter = ('blockchain',)
-    ordering = ('-pk', '-height')
-    readonly_fields = ('canonical_result', 'validation_instance', 'blockchain', 'service',)
+    ordering = ('-validation_instance_id', 'height')
+    readonly_fields = (
+        'canonical_result', 'validation_instance', 'blockchain', 'service',
+    )
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related(
-            'blockchain', 'blockchain__service', 'validation_instance', 'service', 'canonical_result'
+            'blockchain', 'blockchain__service', 'validation_instance', 'service',
+            'canonical_result'
         )
 
     def run_number(self, obj):

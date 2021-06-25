@@ -437,11 +437,15 @@ class BlockValidationInstance(models.Model):
 
 
 class BlockValidationResult(models.Model):
-    blockchain = models.ForeignKey(Blockchain, on_delete=models.CASCADE)
+    blockchain = models.ForeignKey(
+        to=Blockchain, on_delete=models.CASCADE, related_name='validation_results'
+    )
     validation_instance = models.ForeignKey(
         to=BlockValidationInstance, on_delete=models.CASCADE
     )
-    service = models.ForeignKey(Service, on_delete=models.CASCADE)
+    service = models.ForeignKey(
+        to=Service, on_delete=models.CASCADE, related_name='validation_results'
+    )
     started = models.DateTimeField()
     duration = models.PositiveBigIntegerField(help_text='Duration in milliseconds')
     status = models.CharField(max_length=2, choices=RESULT_STATUSES)
@@ -464,7 +468,8 @@ class BlockValidationResult(models.Model):
     )
     canonical_result = models.ForeignKey(
         to='BlockValidationResult', on_delete=models.CASCADE, null=True,
-        help_text='The canonical block check result for this block height (null if this block is canonical)'
+        help_text='The canonical block check result for this block height '
+                  '(null if this block is canonical)'
     )
     hash_mismatch = models.BooleanField(
         default=False,
@@ -482,6 +487,14 @@ class BlockValidationResult(models.Model):
         unique_together = [
             ('validation_instance', 'height')
         ]
+        indexes = [
+            models.Index(fields=('height',), name='height_index')
+        ]
 
     def __str__(self):
         return f'{self.blockchain} {len(self.transaction_ids)} tx @ {self.height}'
+
+    def block_status(self):
+        if len(self.missing_transaction_ids) or self.hash_mismatch:
+            return 'danger'
+        return 'success'
