@@ -1,10 +1,10 @@
 from collections import defaultdict
-from django.db.models import Count, Prefetch, Max, OuterRef, F, Subquery
+from django.db.models import OuterRef, Exists
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from .models import Service, CheckInstance, ChainHeightResult, CheckError, Blockchain, \
-    CHECK_TYPE_BLOCK_HEIGHT, PingResult, BlockValidationInstance, BlockValidationResult
+    CHECK_TYPE_BLOCK_HEIGHT, PingResult, BlockValidationResult
 
 
 def index(request):
@@ -136,11 +136,8 @@ def get_difftable_context(request):
 
 def get_validtable_context(request):
     context = {}
-    height_count = 100
-    chains = Blockchain.objects.annotate(
-        results_count=Count('validation_results')
-    ).filter(
-        results_count__gt=0, service__private=False
+    chains = Blockchain.objects.filter(
+        Exists(BlockValidationResult.objects.filter(blockchain=OuterRef('pk'))), service__private=False
     ).select_related(
         'service', 'meta'
     )
