@@ -168,9 +168,9 @@ class ChainHeightResultQuerySet(models.QuerySet):
         now = timezone.now()
         then = now - distance
         averages = self.filter(
-            check_instance__started__gt=then
-        ).exclude(
-            check_instance__completed__isnull=True
+            check_instance__type__exact=CHECK_TYPE_BLOCK_HEIGHT,
+            check_instance__completed__isnull=False,
+            check_instance__completed__gt=then
         ).annotate(
             started_hour=Trunc('started', 'hour'),
             diff=F('height') - F('best_result__height')
@@ -268,8 +268,9 @@ class PingResultQuerySet(models.QuerySet):
         now = timezone.now()
         then = now - distance
         results = self.filter(
-            check_instance__started__gt=then,
-            check_instance__completed__isnull=False
+            check_instance__type__exact=CHECK_TYPE_PING,
+            check_instance__completed__isnull=False,
+            check_instance__completed__gt=then,
         ).annotate(
             started_minute=Trunc('started', 'minute'),
         ).values(
