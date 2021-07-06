@@ -225,6 +225,11 @@ class ChainHeightResult(models.Model):
 
     objects = ChainHeightResultQuerySet.as_manager()
 
+    class Meta:
+        indexes = [
+            models.Index(fields=('-started',), name='chainheightresult_started')
+        ]
+
     def __str__(self):
         return f'{self.blockchain} {self.get_status_display()} {self.height}'
 
@@ -315,6 +320,11 @@ class PingResult(models.Model):
                                       on_delete=models.SET_NULL)
 
     objects = PingResultQuerySet.as_manager()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=('-started',), name='pingresult_started')
+        ]
 
     def __str__(self):
         return f'{self.service.slug} {self.get_status_display()}'
@@ -444,6 +454,11 @@ class BlockValidationInstance(models.Model):
     started = models.DateTimeField()
     completed = models.DateTimeField(null=True)
     timed_out = models.BooleanField(default=False)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=('-end_height',), name='blockvalidationresult_end')
+        ]
 
     def __str__(self):
         return f'{self.blockchain} {self.start_height}-{self.end_height}'
