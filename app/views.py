@@ -10,7 +10,6 @@ from .models import Service, CheckInstance, ChainHeightResult, CheckError, Block
 def index(request):
     context = {}
     context.update(get_difftable_context(request))
-    context.update(get_validtable_context(request))
     return render(request, 'app/index.html', context)
 
 
