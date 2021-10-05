@@ -114,7 +114,7 @@ class Blockchain(models.Model):
 
 
 class CheckInstanceQuerySet(models.QuerySet):
-    def delete_expired(self, distance=datetime.timedelta(days=120)):
+    def delete_expired(self, distance=datetime.timedelta(days=10)):
         now = timezone.now()
         then = now - distance
         return self.filter(
