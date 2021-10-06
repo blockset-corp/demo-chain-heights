@@ -444,7 +444,7 @@ class CheckError(models.Model):
         return _clean_headers(self.request_headers)
 
     def response_headers_cleaned(self):
-        return _clean_headers(self.request_headers)
+        return _clean_headers(self.response_headers)
 
 
 class BlockValidationInstance(models.Model):
